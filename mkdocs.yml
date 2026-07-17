@@ -1,0 +1,51 @@
+site_name: ofiqpy
+site_description: A faithful Python port of OFIQ v1.1.0 (ISO/IEC 29794-5 face image quality)
+site_url: https://avhbac.github.io/ofiqpy/
+repo_url: https://github.com/AVHBAC/ofiqpy
+repo_name: AVHBAC/ofiqpy
+edit_uri: ""
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle: { icon: material/weather-night, name: Dark mode }
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle: { icon: material/weather-sunny, name: Light mode }
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.integrate
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc: { permalink: true }
+  - pymdownx.superfences
+  - pymdownx.highlight
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            heading_level: 3
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quickstart: quickstart.md
+  - Architecture: architecture.md
+  - Components: components.md
+  - Conformance: conformance.md
+  - CLI & Batch: cli.md
+  - API Reference: api.md
+  - Licensing: licensing.md

@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ofiqpy"
+version = "0.1.0"
+description = "A faithful Python port of OFIQ v1.1.0 (ISO/IEC 29794-5 face image quality), matching the reference within ±1."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Aaron Storey" }]
+keywords = ["face", "image quality", "biometrics", "ISO 29794-5", "OFIQ", "FIQA"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+
+# Versions pinned to OFIQ v1.1.0's own toolchain for bit-faithful model inference.
+dependencies = [
+    "numpy>=1.23,<2",
+    "opencv-python-headless==4.5.5.64",
+    "onnxruntime==1.18.1",
+]
+
+[project.optional-dependencies]
+verify = ["pandas>=1.5"]              # the live-OFIQ ±1 gate harness
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.24"]
+dev = ["pytest>=7", "ruff>=0.4", "pandas>=1.5", "jupyter>=1.0"]
+
+[project.urls]
+Homepage = "https://github.com/AVHBAC/ofiqpy"
+Documentation = "https://avhbac.github.io/ofiqpy/"
+Repository = "https://github.com/AVHBAC/ofiqpy"
+Issues = "https://github.com/AVHBAC/ofiqpy/issues"
+
+[project.scripts]
+ofiqpy = "ofiqpy.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ofiqpy*"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E741"]  # ambiguous var name (l/r used for landmark coords, faithful to OFIQ)
+
+[tool.ruff.lint.per-file-ignores]
+# The live-OFIQ gate harnesses manipulate sys.path before importing (E402).
+"tests/gate_slice.py" = ["E402"]
+"tests/verify_ofiq.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.ipynb_checkpoints/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Native diagnostic bridges (rebuild with native/build.sh; large + platform-specific)
+native/*.so
+
+# Docs build
+site/
+
+# OS / editors
+.DS_Store
+*.swp
+
+# OFIQ models / data are never committed (separately licensed)
+models/
+*.onnx
+*.caffemodel
+*.xml.gz

@@ -1,0 +1,27 @@
+ofiqpy — a faithful Python port of OFIQ v1.1.0
+==============================================
+
+ofiqpy reproduces the algorithms of OFIQ (Open Source Face Image Quality), the
+ISO/IEC 29794-5 reference implementation developed by the German Federal Office
+for Information Security (BSI), Copyright (c) 2024, MIT-licensed:
+
+    https://github.com/BSI-OFIQ/OFIQ-Project
+
+Models are NOT bundled
+----------------------
+ofiqpy loads OFIQ's own model files at runtime (SSD face detector, ADNet-98
+landmarks, 3DDFA-V2 pose, BiSeNet face parsing, face-occlusion segmentation,
+sharpness random forest, compression CNN, HSEmotion + AdaBoost expression, and
+the MagFace unified-quality model). These files ship with OFIQ and may be
+licensed separately from the OFIQ source (see OFIQ's LICENSE.md). They are NOT
+redistributed with ofiqpy.
+
+To run ofiqpy, obtain the models from an OFIQ install and set:
+
+    export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data
+
+Conformance
+-----------
+ofiqpy targets agreement with the OFIQ reference to within +/- 1 quality point
+per component (the ISO/IEC 29794-5 Annex A criterion). See the docs for the
+validated conformance figures.
