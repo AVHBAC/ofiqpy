@@ -15,8 +15,7 @@ import numpy as np
 import pandas as pd
 
 # Reference OFIQ install (for the ±1 gate). Override via OFIQPY_OFIQ_ROOT.
-OFIQ_ROOT = Path(os.environ.get("OFIQPY_OFIQ_ROOT",
-                                "/mnt/projects/02_perception_biometrics/OFIQ-Project"))
+OFIQ_ROOT = Path(os.environ.get("OFIQPY_OFIQ_ROOT", "OFIQ-Project"))
 OFIQ_BIN = OFIQ_ROOT / "install_x86_64_linux/Release/bin/OFIQSampleApp"
 OFIQ_LIB = OFIQ_ROOT / "install_x86_64_linux/Release/lib"
 OFIQ_DATA = OFIQ_ROOT / "data"

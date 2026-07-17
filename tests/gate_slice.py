@@ -1,6 +1,13 @@
-"""Gate the vertical-slice measures against live OFIQ at ISO Annex A ±1."""
+"""Gate all 28 components against live OFIQ at the ISO Annex A ±1 criterion.
+
+Usage:
+    export OFIQPY_OFIQ_ROOT=/path/to/OFIQ-Project    # built OFIQSampleApp
+    export OFIQPY_TEST_IMAGES=/path/to/face/images   # directory of .jpg
+    python tests/gate_slice.py 100
+"""
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -13,11 +20,10 @@ from verify_ofiq import gate, print_report, run_ofiq
 
 from ofiqpy.config import OFIQConfig
 from ofiqpy.measures.core import Measures
+from ofiqpy.output import OFIQ_ORDER
 from ofiqpy.pipeline import OFIQPipeline
 
-SRC = Path("/mnt/projects/datasets/celeba/original_wild/Part 1/Part 1")
-from ofiqpy.output import OFIQ_ORDER
-
+SRC = Path(os.environ.get("OFIQPY_TEST_IMAGES", "test_images"))
 SLICE = OFIQ_ORDER  # all 28 components
 
 

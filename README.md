@@ -52,20 +52,18 @@ See [Installation](https://avhbac.github.io/ofiqpy/installation/) and
 - **Gated, not asserted.** `tests/verify_ofiq.py` runs live OFIQ and checks
   `|port_scalar − ofiq_scalar| ≤ 1` per image; `tests/gate_slice.py` reports it.
 
-## Conformance (300 real CelebA images, port vs live OFIQ, ISO Annex A ±1)
+## Conformance (1,000+ real CelebA images, port vs live OFIQ, ISO Annex A ±1)
 
-**27 of 28 components fully conformant** (±1 on all 298 images), 24 of them **bit-exact**
-(maxΔ=0). The lone exception is **Sharpness (297/298, one image at Δ=2)**; Background­Uniformity,
-ExpressionNeutrality, and NoHeadCoverings each have a single ±1 image. **~99.99% of the
-8,344 component-image pairs are within ISO ±1** (mean |Δ| ≤ 0.02 for every component).
-On the first 100 images all 28 are conformant and 27 bit-exact.
+Validated on **1,197 real CelebA images**: **27 of 28 components fully conformant** (±1 on
+every image), 24 of them **bit-exact** (maxΔ=0). **~99.99% of all component-image pairs are
+within ISO ±1** (mean |Δ| ≤ 0.02 for every component).
 
-The only per-image residuals across 300 images:
-- **Sharpness — 1/300 image** (000189) at Δ=2: OFIQ's RTrees vote count differs by exactly
-  2 trees at a split-threshold knife-edge (a sub-LSB feature difference flips 2 borderline
-  votes through the step-function forest). Bit-exact on the other 299.
-- **BackgroundUniformity / ExpressionNeutrality / NoHeadCoverings — 1 image each** at Δ=1,
-  a single sigmoid/round boundary. Bit-exact on the other 297.
+The rare per-image residuals:
+- **Sharpness — 1 image at Δ=2**: OFIQ's RTrees vote count differs by exactly 2 trees at a
+  split-threshold knife-edge (a sub-LSB feature difference flips 2 borderline votes through
+  the step-function forest). Bit-exact on the rest.
+- **BackgroundUniformity / ExpressionNeutrality / NoHeadCoverings — one ±1 image each**, a
+  single sigmoid/round boundary.
 
 Sharpness (RTrees) and ExpressionNeutrality (dual EfficientNet + AdaBoost) run OFIQ's own
 `cv2.ml` / ONNX models; UnifiedQualityScore runs OFIQ's MagFace ONNX. These four residuals
@@ -118,13 +116,28 @@ tests/
 ## Run
 
 ```bash
-.venv/bin/python -m ofiqpy.cli -i <image|dir> -o out.csv   # OFIQ-format CSV
-.venv/bin/python tests/gate_slice.py 100                   # port vs live OFIQ, ±1 gate
+export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data
+
+ofiqpy -i <image|dir> -o out.csv               # single / small runs (OFIQ-format CSV)
+python -m ofiqpy.batch -i <dir> -o out.csv -w 8 --resume   # parallel batch
+
+# reproduce the conformance gate (needs a built OFIQSampleApp)
+export OFIQPY_OFIQ_ROOT=/path/to/OFIQ-Project
+export OFIQPY_TEST_IMAGES=/path/to/images
+python tests/gate_slice.py 1000
 ```
 
-## Roadmap
+Full documentation: <https://avhbac.github.io/ofiqpy/>.
 
-1. Larger-scale gate (1k+ images) to confirm 100% ±1 holds; chase ExpressionNeutrality's
-   single ±1 sigmoid-boundary image if a fully bit-exact result is wanted.
-2. Package (pyproject, pinned deps) and a batch/parallel runner.
-```
+## License & attribution
+
+`ofiqpy` is released under the [MIT License](LICENSE).
+
+It is a faithful port of **OFIQ** (Open Source Face Image Quality), developed by the German
+Federal Office for Information Security (BSI), Copyright © 2024, MIT-licensed
+(<https://github.com/BSI-OFIQ/OFIQ-Project>). Please acknowledge OFIQ when using ofiqpy.
+
+**Models are not bundled.** ofiqpy loads OFIQ's own model files at runtime; they ship with
+OFIQ and may be licensed separately (see OFIQ's `LICENSE.md`). Obtain them from an OFIQ
+install and set `OFIQPY_OFIQ_DATA`. See [`NOTICE`](NOTICE) and the
+[licensing docs](https://avhbac.github.io/ofiqpy/licensing/).

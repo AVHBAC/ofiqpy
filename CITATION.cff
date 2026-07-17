@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use ofiqpy, please cite it and acknowledge OFIQ (BSI)."
+title: "ofiqpy: a faithful Python port of OFIQ (ISO/IEC 29794-5 face image quality)"
+authors:
+  - family-names: Storey
+    given-names: Aaron
+version: 0.1.0
+license: MIT
+repository-code: "https://github.com/AVHBAC/ofiqpy"
+url: "https://avhbac.github.io/ofiqpy/"
+keywords:
+  - face image quality
+  - biometrics
+  - ISO/IEC 29794-5
+  - OFIQ
+  - FIQA
+references:
+  - type: software
+    title: "OFIQ — Open Source Face Image Quality"
+    authors:
+      - name: "Federal Office for Information Security (BSI)"
+    year: 2024
+    license: MIT
+    repository-code: "https://github.com/BSI-OFIQ/OFIQ-Project"

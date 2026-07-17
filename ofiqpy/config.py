@@ -12,8 +12,8 @@ from pathlib import Path
 # OFIQ's models + config are reused directly (they are separately licensed and NOT bundled).
 # Point ofiqpy at an OFIQ checkout's data/ directory via the OFIQPY_OFIQ_DATA env var, e.g.:
 #     export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data
-# Falls back to a local development checkout if the env var is unset.
-_DEFAULT_DATA = Path("/mnt/projects/02_perception_biometrics/OFIQ-Project/data")
+# Falls back to ./OFIQ-Project/data (relative to the current directory) if unset.
+_DEFAULT_DATA = Path("OFIQ-Project/data")
 OFIQ_DATA = Path(os.environ.get("OFIQPY_OFIQ_DATA", _DEFAULT_DATA))
 OFIQ_CONFIG = OFIQ_DATA / "ofiq_config.jaxn"
 
