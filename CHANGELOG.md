@@ -3,6 +3,18 @@
 All notable changes to ofiqpy are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
+## [0.1.1] — 2026-07-17
+
+### Added
+- Source distribution now ships the full project (CHANGELOG, CITATION, docs sources,
+  examples, notebooks, native bridge sources, and the test suite) via `MANIFEST.in`.
+- CI: full lint + type pipeline (`ruff check` + `ruff format --check` + `mypy`).
+
+### Fixed
+- Removed local development paths from `config.py` / test harnesses in favour of
+  env-driven defaults (`OFIQPY_OFIQ_DATA`, `OFIQPY_OFIQ_ROOT`, `OFIQPY_TEST_IMAGES`).
+- Minor typing fixes (array dtypes, worker None-guards).
+
 ## [0.1.0] — 2026-07-17
 
 Initial release — a faithful Python port of OFIQ v1.1.0 (ISO/IEC 29794-5).

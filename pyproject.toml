@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ofiqpy"
-version = "0.1.0"
+version = "0.1.1"
 description = "A faithful Python port of OFIQ v1.1.0 (ISO/IEC 29794-5 face image quality), matching the reference within ±1."
 readme = "README.md"
 requires-python = ">=3.9"
