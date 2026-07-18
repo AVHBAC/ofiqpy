@@ -4,6 +4,7 @@ quality = h * (a + s * sigmoid(raw; x0, w)), optionally std::round, clamp [0,100
 Struct defaults: h=100, a=0, s=1, x0=4, w=0.7, round=True (Measure.h:121-129).
 Effective params = struct default <- measure-code default <- config override.
 """
+
 from __future__ import annotations
 
 import math
@@ -11,7 +12,7 @@ import math
 
 def _sigmoid(x: float, x0: float, w: float) -> float:
     z = (x0 - x) / w
-    if z > 700:      # exp overflow guard
+    if z > 700:  # exp overflow guard
         return 0.0
     if z < -700:
         return 1.0

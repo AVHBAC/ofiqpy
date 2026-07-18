@@ -4,6 +4,7 @@ Sharpness runs on the ORIGINAL image + original landmarks (RTrees via cv2.ml).
 Occlusion measures use the 616x616 occlusion mask + aligned regions, linear 100*(1-a).
 Expression: crop -> normalize-then-resize -> enet_b0/b2 ONNX -> AdaBoost PREDICT_SUM.
 """
+
 from __future__ import annotations
 
 import cv2
@@ -40,8 +41,8 @@ def sharpness(s, rtree, num_trees):
     if not contours:
         return "Sharpness", None, -1
     x, y, w, h = cv2.boundingRect(contours[0])
-    gray = cv2.cvtColor(s.image[y:y + h, x:x + w], cv2.COLOR_BGR2GRAY)
-    mask_crop = face_mask[y:y + h, x:x + w]
+    gray = cv2.cvtColor(s.image[y : y + h, x : x + w], cv2.COLOR_BGR2GRAY)
+    mask_crop = face_mask[y : y + h, x : x + w]
     feats = _sharpness_features(gray, mask_crop)
     _, raw_out = rtree.predict(feats, flags=cv2.ml.STAT_MODEL_RAW_OUTPUT)
     native = num_trees - float(raw_out[0, 0])
@@ -59,6 +60,7 @@ def eyes_visible(s):
     import math
 
     from .helpers import get_distance, get_middle
+
     lc = get_middle([al[60], al[64]])
     rc = get_middle([al[68], al[72]])
     cosy = math.cos(math.radians(s.pitch))
@@ -68,7 +70,7 @@ def eyes_visible(s):
     V = int(math.floor(ied / 20.0))
 
     def evz_rect(idx):
-        pts = al[idx[0]:idx[1]]
+        pts = al[idx[0] : idx[1]]
         x, y, w, h = cv2.boundingRect(pts)
         return np.array([[x - V, y - V], [x + w + V, y - V], [x + w + V, y + h + V], [x - V, y + h + V]], np.int32)
 
@@ -111,7 +113,7 @@ _IMAGENET_STD = np.array([0.229, 0.224, 0.225], np.float32)
 
 
 def expression_neutrality(s, enet1, enet2, boost):
-    crop = s.aligned_face[148:148 + 340, 144:144 + 328]
+    crop = s.aligned_face[148 : 148 + 340, 144 : 144 + 328]
     t = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
     t = (t - _IMAGENET_MEAN) / _IMAGENET_STD
     r1 = cv2.resize(t, (224, 224), interpolation=cv2.INTER_LINEAR)

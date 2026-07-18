@@ -10,6 +10,7 @@ Then:
     from ofiqpy import assess
     scores = assess("face.jpg")   # {component_name: (raw, scalar)}
 """
+
 from __future__ import annotations
 
 __version__ = "0.1.0"
@@ -25,6 +26,7 @@ def _lazy():
         from .config import OFIQConfig
         from .measures.core import Measures
         from .pipeline import OFIQPipeline
+
         cfg = OFIQConfig()
         _PIPE = OFIQPipeline(cfg)
         _MEAS = Measures(cfg)
@@ -49,6 +51,7 @@ def assess(image: "str | object") -> dict:
         bgr = image
     else:
         import cv2
+
         bgr = cv2.imread(str(image))
         if bgr is None:
             raise FileNotFoundError(f"could not read image: {image}")

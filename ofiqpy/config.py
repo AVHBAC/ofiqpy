@@ -3,6 +3,7 @@
 Faithful port of OFIQ v1.1.0. Model files and config are reused directly from the
 reference OFIQ-Project checkout so the port loads the *same* weights OFIQ uses.
 """
+
 from __future__ import annotations
 
 import json

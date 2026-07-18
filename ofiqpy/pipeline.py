@@ -3,6 +3,7 @@
 detect -> pose -> landmarks -> align -> parse -> occlusion -> region -> luminance,
 each product stored on Session and reused by measures.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -15,13 +16,15 @@ from .session import Session
 
 
 class OFIQPipeline:
-    def __init__(self, cfg: OFIQConfig | None = None, enable_pose=True,
-                 enable_parsing=True, enable_occlusion=True):
+    def __init__(self, cfg: OFIQConfig | None = None, enable_pose=True, enable_parsing=True, enable_occlusion=True):
         self.cfg = cfg or OFIQConfig()
         d = self.cfg.detector()
         self.detector = SSDDetector(
-            self.cfg.resolve(d["model_path"]), self.cfg.resolve(d["prototxt_path"]),
-            d["confidence_thr"], d["min_rel_face_size"], d["padding"],
+            self.cfg.resolve(d["model_path"]),
+            self.cfg.resolve(d["prototxt_path"]),
+            d["confidence_thr"],
+            d["min_rel_face_size"],
+            d["padding"],
         )
         self.landmarker = ADNetLandmarker(self.cfg.landmarks_model())
         self._pose = self._parser = self._occ = None
@@ -32,18 +35,21 @@ class OFIQPipeline:
     def _get_pose(self):
         if self._pose is None:
             from .pose.tddfa import TDDFAPose
+
             self._pose = TDDFAPose(self.cfg.resolve(self.cfg.measure("HeadPose")["model_path"]))
         return self._pose
 
     def _get_parser(self):
         if self._parser is None:
             from .segmentation.parsing import FaceParser
+
             self._parser = FaceParser(self.cfg.resolve(self.cfg.measure("FaceParsing")["model_path"]))
         return self._parser
 
     def _get_occ(self):
         if self._occ is None:
             from .segmentation.occlusion import OcclusionSeg
+
             self._occ = OcclusionSeg(self.cfg.resolve(self.cfg.measure("FaceOcclusionSegmentation")["model_path"]))
         return self._occ
 

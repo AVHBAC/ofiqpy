@@ -3,6 +3,7 @@
 ONNX input 'input' [1,3,256,256] BGR planes, norm 2p/255-1; output '3209' [1,98,2];
 denorm (v+1)/2*255; back-map to original px via square-box scale.
 """
+
 from __future__ import annotations
 
 import math
@@ -47,8 +48,7 @@ def make_square_with_padding(sq, img):
     left = max(0, -x)
     right = max(0, xbr - W + 1)
     if top or bottom or left or right:
-        padded = cv2.copyMakeBorder(img, top, bottom, left, right,
-                                    cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        padded = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(0, 0, 0))
     else:
         padded = img
     tx, ty = left, top
@@ -66,16 +66,16 @@ class ADNetLandmarker:
         sq = make_square_bbox(*primary_box)
         padded, sq_pad, (tx, ty) = make_square_with_padding(sq, img)
         x, y, sw, sh = sq_pad
-        crop = padded[y:y + sh, x:x + sw]
+        crop = padded[y : y + sh, x : x + sw]
         if crop.shape[:2] != (256, 256):
             crop = cv2.resize(crop, (256, 256), interpolation=cv2.INTER_LINEAR)
         arr = crop.astype(np.float32) * (2.0 / 255.0) - 1.0  # [-1,1], BGR planes
-        blob = np.transpose(arr, (2, 0, 1))[None]            # (1,3,256,256)
+        blob = np.transpose(arr, (2, 0, 1))[None]  # (1,3,256,256)
         out = self.sess.run([self.out_name], {"input": blob})[0].reshape(-1)
-        out = (out + 1.0) / 2.0 * 255.0                      # denorm to 256-space
-        scale = sq[3] / 256.0    # OFIQ uses square HEIGHT/256 (adnet_landmarks.cpp:313),
+        out = (out + 1.0) / 2.0 * 255.0  # denorm to 256-space
+        scale = sq[3] / 256.0  # OFIQ uses square HEIGHT/256 (adnet_landmarks.cpp:313),
         #                          not width — the floor/ceil square can be 1px non-square.
-        ox = sq_pad[0] - tx                                   # original square xleft
+        ox = sq_pad[0] - tx  # original square xleft
         oy = sq_pad[1] - ty
         pts = np.empty((98, 2), np.float64)
         for i in range(98):

@@ -3,6 +3,7 @@
 Each worker process builds its own pipeline (ONNX/cv2.ml models are not shared
 across processes). Resumable: rows already present in the output CSV are skipped.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,12 +28,14 @@ def _init_worker():
     from .config import OFIQConfig
     from .measures.core import Measures
     from .pipeline import OFIQPipeline
+
     cfg = OFIQConfig()
     _PIPE = OFIQPipeline(cfg)
     _MEAS = Measures(cfg)
 
 
 def _assess_one(path_str: str) -> str:
+    assert _PIPE is not None and _MEAS is not None  # set by _init_worker in each process
     t0 = time.time()
     bgr = cv2.imread(path_str)
     try:
@@ -73,8 +76,7 @@ def run_batch(input_path, output_csv, workers=None, resume=False, progress=True)
     mode = "a" if (resume and out.exists()) else "w"
     n_done = 0
     t0 = time.time()
-    with open(out, mode) as fh, ProcessPoolExecutor(max_workers=workers,
-                                                    initializer=_init_worker) as ex:
+    with open(out, mode) as fh, ProcessPoolExecutor(max_workers=workers, initializer=_init_worker) as ex:
         if write_header:
             fh.write(header() + "\n")
         for line in ex.map(_assess_one, [str(im) for im in todo], chunksize=1):

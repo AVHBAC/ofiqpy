@@ -29,7 +29,7 @@ dependencies = [
 [project.optional-dependencies]
 verify = ["pandas>=1.5"]              # the live-OFIQ ±1 gate harness
 docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.24"]
-dev = ["pytest>=7", "ruff>=0.4", "pandas>=1.5", "jupyter>=1.0"]
+dev = ["pytest>=7", "ruff>=0.4", "mypy>=1.8", "pandas>=1.5", "jupyter>=1.0"]
 
 [project.urls]
 Homepage = "https://github.com/AVHBAC/ofiqpy"
@@ -55,6 +55,16 @@ ignore = ["E741"]  # ambiguous var name (l/r used for landmark coords, faithful 
 # The live-OFIQ gate harnesses manipulate sys.path before importing (E402).
 "tests/gate_slice.py" = ["E402"]
 "tests/verify_ofiq.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.10"
+files = ["ofiqpy"]
+ignore_missing_imports = true   # cv2 / onnxruntime / numpy C-extensions have no stubs
+warn_redundant_casts = true
+warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

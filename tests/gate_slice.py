@@ -5,6 +5,7 @@ Usage:
     export OFIQPY_TEST_IMAGES=/path/to/face/images   # directory of .jpg
     python tests/gate_slice.py 100
 """
+
 from __future__ import annotations
 
 import os
@@ -46,8 +47,8 @@ def main():
         except Exception as e:
             print(f"  PORT FAIL {img.name}: {type(e).__name__}: {e}")
         if (i + 1) % 20 == 0:
-            print(f"  port {i+1}/{len(imgs)}  {(i+1)/(time.time()-t0):.1f} img/s", flush=True)
-    print(f"port done: {len(port)} images in {time.time()-t0:.0f}s")
+            print(f"  port {i + 1}/{len(imgs)}  {(i + 1) / (time.time() - t0):.1f} img/s", flush=True)
+    print(f"port done: {len(port)} images in {time.time() - t0:.0f}s")
 
     ofiq_df = run_ofiq(imgs)
     report = gate(port, ofiq_df, SLICE, tol=1.0)
@@ -60,7 +61,7 @@ def main():
         for c in SLICE:
             pv = port[bn].get(c)
             ov = float(ofiq_df.loc[bn, f"{c}.scalar"]) if bn in ofiq_df.index else None
-            print(f"  {c:26} port={pv}  ofiq={ov}  d={abs(pv-ov) if pv is not None and ov is not None else '-'}")
+            print(f"  {c:26} port={pv}  ofiq={ov}  d={abs(pv - ov) if pv is not None and ov is not None else '-'}")
 
 
 if __name__ == "__main__":

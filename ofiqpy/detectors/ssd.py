@@ -3,6 +3,7 @@
 Caffe model via OpenCV DNN (NOT onnxruntime): 300x300, BGR mean (104,117,123),
 pad 20%, conf>=0.4, min rel face size 0.05, primary = largest area.
 """
+
 from __future__ import annotations
 
 import math
@@ -16,8 +17,7 @@ def _round(x: float) -> int:
 
 
 class SSDDetector:
-    def __init__(self, caffemodel, prototxt, confidence_thr=0.4,
-                 min_rel_face_size=0.05, padding=0.2):
+    def __init__(self, caffemodel, prototxt, confidence_thr=0.4, min_rel_face_size=0.05, padding=0.2):
         self.net = cv2.dnn.readNetFromCaffe(str(prototxt), str(caffemodel))
         self.thr = confidence_thr
         self.min_rel = min_rel_face_size
@@ -26,13 +26,11 @@ class SSDDetector:
     def detect(self, img: np.ndarray) -> list[tuple[int, int, int, int]]:
         """Return face boxes [(left, top, w, h), ...] in ORIGINAL px, largest first."""
         H, W = img.shape[:2]
-        padH = int(W * self.pad)   # static_cast truncation
+        padH = int(W * self.pad)  # static_cast truncation
         padV = int(H * self.pad)
-        padded = cv2.copyMakeBorder(img, padV, padV, padH, padH,
-                                    cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        padded = cv2.copyMakeBorder(img, padV, padV, padH, padH, cv2.BORDER_CONSTANT, value=(0, 0, 0))
         Ph, Pw = padded.shape[:2]
-        blob = cv2.dnn.blobFromImage(padded, 1.0, (300, 300), (104, 117, 123),
-                                     swapRB=False, crop=False)
+        blob = cv2.dnn.blobFromImage(padded, 1.0, (300, 300), (104, 117, 123), swapRB=False, crop=False)
         self.net.setInput(blob)
         det = self.net.forward()  # (1,1,N,7)
         faces = []

@@ -4,6 +4,7 @@ LuminanceMean (C03), HeadSize (C20), NoHeadCoverings (C17),
 CompressionArtifacts (C09), UnifiedQualityScore, HeadPose Yaw/Pitch/Roll (slot-swap).
 Returns OFIQ component names -> scalar (0-100), matching the OFIQ CSV columns.
 """
+
 from __future__ import annotations
 
 import math
@@ -30,6 +31,7 @@ class Measures:
     def _load_ml_gz(self, path, loader):
         import gzip
         import tempfile
+
         data = gzip.decompress(Path(path).read_bytes())
         suffix = ".xml" if str(path).endswith(".xml.gz") else ".yml"
         with tempfile.NamedTemporaryFile("wb", suffix=suffix, delete=False) as f:
@@ -84,7 +86,7 @@ class Measures:
     # --- C17 NoHeadCoverings (custom piecewise mapping) ---
     def no_head_coverings(self, s):
         M = s.parsing  # 400x400
-        crop = M[0:400 - 204, :]  # top 196 rows
+        crop = M[0 : 400 - 204, :]  # top 196 rows
         n = int((crop == CLOTH).sum() + (crop == HAT).sum())
         raw = n / (400 * 196)
         T0, T1, w, x0 = 0.0, 0.95, 0.1, 0.02
@@ -101,7 +103,7 @@ class Measures:
 
     # --- C09 CompressionArtifacts (reuses OFIQ ssim_248 ONNX) ---
     def compression(self, s):
-        crop = s.aligned_face[184:616 - 184, 184:616 - 184]  # 248x248
+        crop = s.aligned_face[184 : 616 - 184, 184 : 616 - 184]  # 248x248
         rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB).astype(np.float32)
         mean = np.array([123.7, 116.3, 103.5], np.float32)
         std = np.array([58.4, 57.1, 57.4], np.float32)
@@ -114,7 +116,7 @@ class Measures:
     # --- UnifiedQualityScore (MagFace magnitude -> sigmoid) ---
     def unified(self, s):
         resized = cv2.resize(s.aligned_face, (192, 192), interpolation=cv2.INTER_LINEAR)
-        crop = resized[33:192 - 47, 40:192 - 40]  # 112x112, BGR
+        crop = resized[33 : 192 - 47, 40 : 192 - 40]  # 112x112, BGR
         conv = crop.astype(np.float32) / 255.0
         blob = np.transpose(conv, (2, 0, 1))[None]
         raw = float(self._magface_sess().run(None, {"input": blob})[0].reshape(-1)[0])
@@ -142,9 +144,9 @@ class Measures:
         from . import geometry as G
         from . import models as M
         from . import pixel as P
+
         out = {}
-        for fn in (self.luminance_mean, self.head_size, self.no_head_coverings,
-                   self.compression, self.unified):
+        for fn in (self.luminance_mean, self.head_size, self.no_head_coverings, self.compression, self.unified):
             name, scalar, raw = fn(s)
             out[name] = (raw, scalar)
         for fn in (G.inter_eye_distance, G.single_face_present, G.eyes_open, G.mouth_closed):
@@ -152,8 +154,15 @@ class Measures:
             out[name] = (raw, scalar)
         out.update(G.crop_of_face(s))
         # pixel/exposure batch
-        for fn in (P.background_uniformity, P.illumination_uniformity, P.luminance_variance,
-                   P.under_exposure, P.over_exposure, P.dynamic_range, P.natural_colour):
+        for fn in (
+            P.background_uniformity,
+            P.illumination_uniformity,
+            P.luminance_variance,
+            P.under_exposure,
+            P.over_exposure,
+            P.dynamic_range,
+            P.natural_colour,
+        ):
             name, raw, scalar = fn(s)
             out[name] = (raw, scalar)
         # occlusion measures

@@ -7,13 +7,14 @@ from ofiqpy.sigmoid import STRUCT_DEFAULTS, _round_half_away, scalar_conversion
 
 def test_version():
     import ofiqpy
+
     assert ofiqpy.__version__
 
 
 def test_round_half_away():
     assert _round_half_away(0.5) == 1
     assert _round_half_away(1.5) == 2
-    assert _round_half_away(2.5) == 3   # NOT banker's rounding (would be 2)
+    assert _round_half_away(2.5) == 3  # NOT banker's rounding (would be 2)
     assert _round_half_away(-0.5) == -1
     assert c_round(2.5) == 3
 
@@ -53,5 +54,6 @@ def test_jaxn_stripper():
     import json
 
     from ofiqpy.config import _strip_jaxn
+
     txt = '{ // comment\n "a": 1, /* block */ "b": [1, 2,], }'
     assert json.loads(_strip_jaxn(txt)) == {"a": 1, "b": [1, 2]}

@@ -4,6 +4,7 @@ Using OFIQ's exact compiled estimateAffinePartial2D/warpAffine/resize makes the
 alignment bit-identical to OFIQ, closing the periphery/landmark parity gap.
 Falls back to pip cv2 if the .so is absent.
 """
+
 from __future__ import annotations
 
 import ctypes
@@ -21,11 +22,9 @@ if AVAILABLE:
     _lib.estimate_affine_partial2d.restype = ctypes.c_int
     _lib.estimate_affine_partial2d.argtypes = [_dp, _dp, ctypes.c_int, _dp]
     _lib.warp_affine.restype = None
-    _lib.warp_affine.argtypes = [_up, ctypes.c_int, ctypes.c_int, ctypes.c_int, _dp,
-                                 _up, ctypes.c_int, ctypes.c_int]
+    _lib.warp_affine.argtypes = [_up, ctypes.c_int, ctypes.c_int, ctypes.c_int, _dp, _up, ctypes.c_int, ctypes.c_int]
     _lib.resize_linear.restype = None
-    _lib.resize_linear.argtypes = [_up, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                   _up, ctypes.c_int, ctypes.c_int]
+    _lib.resize_linear.argtypes = [_up, ctypes.c_int, ctypes.c_int, ctypes.c_int, _up, ctypes.c_int, ctypes.c_int]
 
 
 def _d(a):
@@ -40,8 +39,7 @@ def estimate_affine_partial2d(src, dst):
     src = np.ascontiguousarray(src, np.float64)
     dst = np.ascontiguousarray(dst, np.float64)
     out = np.zeros(6, np.float64)
-    r = _lib.estimate_affine_partial2d(_d(src), _d(dst), len(src),
-                                       out.ctypes.data_as(_dp))
+    r = _lib.estimate_affine_partial2d(_d(src), _d(dst), len(src), out.ctypes.data_as(_dp))
     return None if r != 0 else out.reshape(2, 3)
 
 

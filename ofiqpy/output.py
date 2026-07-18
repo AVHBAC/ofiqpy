@@ -4,19 +4,41 @@ Semicolon-delimited: Filename; <raw per component in OFIQ order>; <.scalar per
 component>; assessment_time_in_ms. Unimplemented components emit the OFIQ
 FailureToAssess sentinel (raw 0, scalar -1) until ported.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 
 # OFIQ CSV component order (from OFIQSampleApp header).
 OFIQ_ORDER = [
-    "UnifiedQualityScore", "BackgroundUniformity", "IlluminationUniformity", "LuminanceMean",
-    "LuminanceVariance", "UnderExposurePrevention", "OverExposurePrevention", "DynamicRange",
-    "Sharpness", "CompressionArtifacts", "NaturalColour", "SingleFacePresent", "EyesOpen",
-    "MouthClosed", "EyesVisible", "MouthOcclusionPrevention", "FaceOcclusionPrevention",
-    "InterEyeDistance", "HeadSize", "LeftwardCropOfTheFaceImage", "RightwardCropOfTheFaceImage",
-    "MarginAboveOfTheFaceImage", "MarginBelowOfTheFaceImage", "HeadPoseYaw", "HeadPosePitch",
-    "HeadPoseRoll", "ExpressionNeutrality", "NoHeadCoverings",
+    "UnifiedQualityScore",
+    "BackgroundUniformity",
+    "IlluminationUniformity",
+    "LuminanceMean",
+    "LuminanceVariance",
+    "UnderExposurePrevention",
+    "OverExposurePrevention",
+    "DynamicRange",
+    "Sharpness",
+    "CompressionArtifacts",
+    "NaturalColour",
+    "SingleFacePresent",
+    "EyesOpen",
+    "MouthClosed",
+    "EyesVisible",
+    "MouthOcclusionPrevention",
+    "FaceOcclusionPrevention",
+    "InterEyeDistance",
+    "HeadSize",
+    "LeftwardCropOfTheFaceImage",
+    "RightwardCropOfTheFaceImage",
+    "MarginAboveOfTheFaceImage",
+    "MarginBelowOfTheFaceImage",
+    "HeadPoseYaw",
+    "HeadPosePitch",
+    "HeadPoseRoll",
+    "ExpressionNeutrality",
+    "NoHeadCoverings",
 ]
 
 FAILURE = (0.0, -1.0)  # OFIQ FailureToAssess / not-implemented sentinel

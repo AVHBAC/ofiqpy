@@ -1,4 +1,5 @@
 """ofiqpy CLI — OFIQSampleApp-compatible: -i <file|dir> -o <out.csv>."""
+
 from __future__ import annotations
 
 import argparse
@@ -22,8 +23,7 @@ def main():
     args = ap.parse_args()
 
     inp = Path(args.input)
-    imgs = ([inp] if inp.is_file()
-            else sorted(p for p in inp.rglob("*") if p.suffix.lower() in EXTS))
+    imgs = [inp] if inp.is_file() else sorted(p for p in inp.rglob("*") if p.suffix.lower() in EXTS)
 
     cfg = OFIQConfig()
     pipe = OFIQPipeline(cfg)

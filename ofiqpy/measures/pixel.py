@@ -5,6 +5,7 @@ Exposure/DynamicRange/NaturalColour.cpp. Note the non-sigmoid mappings:
 LuminanceVariance=sin, OverExposure=1/(v+0.01), DynamicRange=12.5*entropy,
 IlluminationUniformity=100*D^0.3.
 """
+
 from __future__ import annotations
 
 import math
@@ -45,7 +46,7 @@ def _cheek_rois(al):
 
 def _slice_roi(img, roi):
     x, y, w, h = roi
-    return img[y:y + h, x:x + w]
+    return img[y : y + h, x : x + w]
 
 
 # --- C01 BackgroundUniformity ---
@@ -56,13 +57,13 @@ def background_uniformity(s):
     Pc = P[0:406, 62:554]
     I = cv2.resize(I, (354, 292), interpolation=cv2.INTER_LINEAR)
     Pc = cv2.resize(Pc, (354, 292), interpolation=cv2.INTER_NEAREST)
-    S = s.parsing[0:292, 23:377]                       # 400->crop marginX=23
+    S = s.parsing[0:292, 23:377]  # 400->crop marginX=23
     B = ((Pc == 0) & (S == 0)).astype(np.uint8)
     B = cv2.erode(B, np.ones((4, 4), np.uint8), iterations=1)
     if B.sum() == 0:
         return "BackgroundUniformity", None, -1
     L = luminance(I).astype(np.float32)
-    sx = cv2.Sobel(L, cv2.CV_32F, 1, 0, ksize=-1)      # Scharr
+    sx = cv2.Sobel(L, cv2.CV_32F, 1, 0, ksize=-1)  # Scharr
     sy = cv2.Sobel(L, cv2.CV_32F, 0, 1, ksize=-1)
     G = np.sqrt(sx.astype(np.float64) ** 2 + sy.astype(np.float64) ** 2)
     raw = float(G[B != 0].mean())
@@ -79,10 +80,10 @@ def illumination_uniformity(s):
     rr = _slice_roi(maskedL, right_roi)
     if lr.size == 0 or rr.size == 0:
         return "IlluminationUniformity", None, -1
-    hL, _ = _norm_hist(lr)   # empty mask -> counts black pixels too
+    hL, _ = _norm_hist(lr)  # empty mask -> counts black pixels too
     hR, _ = _norm_hist(rr)
     D = float(np.minimum(hL, hR).sum())
-    scalar = _round_half_away(100.0 * (D ** 0.3))
+    scalar = _round_half_away(100.0 * (D**0.3))
     return "IlluminationUniformity", D, max(0.0, min(100.0, scalar))
 
 
@@ -104,7 +105,7 @@ def _exposure(s, lo, hi):
     tot = hist.sum()
     if tot == 0:
         return None
-    return float(hist[lo:hi + 1].sum() / tot)
+    return float(hist[lo : hi + 1].sum() / tot)
 
 
 # --- C05 UnderExposure ---
@@ -139,9 +140,7 @@ def dynamic_range(s):
 
 
 # --- C10 NaturalColour ---
-_D50 = np.array([[0.43605, 0.38508, 0.14309],
-                 [0.22249, 0.71689, 0.06062],
-                 [0.01393, 0.09710, 0.71419]])
+_D50 = np.array([[0.43605, 0.38508, 0.14309], [0.22249, 0.71689, 0.06062], [0.01393, 0.09710, 0.71419]])
 _WHITE = (0.964221, 1.0, 0.825211)
 
 

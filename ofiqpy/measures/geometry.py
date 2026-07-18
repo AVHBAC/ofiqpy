@@ -3,6 +3,7 @@
 Faithful to InterEyeDistance/CropOfTheFaceImage/SingleFacePresent/EyesOpen/
 MouthClosed.cpp. IED yaw = pose[1] (== our s.pitch, confirmed by exact HeadPose match).
 """
+
 from __future__ import annotations
 
 import math
@@ -43,14 +44,14 @@ def crop_of_face(s):
     H, W = s.image.shape[:2]
     L = get_middle([lm[LEFT_EYE_CORNERS[0]], lm[LEFT_EYE_CORNERS[1]]])
     R = get_middle([lm[RIGHT_EYE_CORNERS[0]], lm[RIGHT_EYE_CORNERS[1]]])
-    eye_mid = get_middle([L, R])                # integer-rounded midpoint
+    eye_mid = get_middle([L, R])  # integer-rounded midpoint
     chin = lm[16]
     t = get_distance(eye_mid, chin)
     ied = get_distance(L, R)
-    raw_left = R[0] / ied                        # C24 Leftward
-    raw_right = (W - L[0]) / ied                 # C25 Rightward
-    raw_above = eye_mid[1] / t                    # C26 MarginAbove
-    raw_below = (H - eye_mid[1]) / t              # C27 MarginBelow
+    raw_left = R[0] / ied  # C24 Leftward
+    raw_right = (W - L[0]) / ied  # C25 Rightward
+    raw_above = eye_mid[1] / t  # C26 MarginAbove
+    raw_below = (H - eye_mid[1]) / t  # C27 MarginBelow
     return {
         "LeftwardCropOfTheFaceImage": (raw_left, scalar_conversion(raw_left, h=100, x0=0.9, w=0.1, round=True)),
         "RightwardCropOfTheFaceImage": (raw_right, scalar_conversion(raw_right, h=100, x0=0.9, w=0.1, round=True)),
