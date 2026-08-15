@@ -1,6 +1,6 @@
 """Alignment (616x616), landmarked-region mask, tmetric, luminance.
 
-Faithful port of utils.cpp:236-331, FaceMeasures.cpp:98-228, image_utils.cpp:43-112.
+Derived from utils.cpp:236-331, FaceMeasures.cpp:98-228, and image_utils.cpp:43-112.
 """
 
 from __future__ import annotations

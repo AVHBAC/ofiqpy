@@ -2,7 +2,6 @@
 
 quality = h * (a + s * sigmoid(raw; x0, w)), optionally std::round, clamp [0,100].
 Struct defaults: h=100, a=0, s=1, x0=4, w=0.7, round=True (Measure.h:121-129).
-Effective params = struct default <- measure-code default <- config override.
 """
 
 from __future__ import annotations
@@ -33,11 +32,3 @@ def scalar_conversion(raw: float, **params) -> float:
     if p["round"]:
         q = _round_half_away(q)
     return max(0.0, min(100.0, q))
-
-
-def resolve_params(code_defaults: dict, config_sigmoid: dict) -> dict:
-    """struct default <- measure-code default <- config override (only present keys)."""
-    p = dict(STRUCT_DEFAULTS)
-    p.update(code_defaults)
-    p.update(config_sigmoid)  # config overrides only the keys it contains
-    return p

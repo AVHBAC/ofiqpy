@@ -1,4 +1,4 @@
-"""BiSeNet face parsing — faithful port of FaceParsing.cpp.
+"""BiSeNet face parsing derived from FaceParsing.cpp.
 
 Aligned 616x616 -> crop [0:556, 30:586] -> RGB, ImageNet norm -> resize 400 ->
 bisenet_400 ONNX (output[0], [1,19,400,400]) -> argmax -> 400x400 class map.

@@ -1,36 +1,30 @@
-"""ofiqpy — a faithful Python port of OFIQ v1.1.0 (ISO/IEC 29794-5 face image quality).
-
-Reuses OFIQ's own models and reproduces its exact algorithms, matching the reference
-within +/- 1 quality point per component. Point ofiqpy at an OFIQ install's data/ dir:
-
-    export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data
-
-Then:
-
-    from ofiqpy import assess
-    scores = assess("face.jpg")   # {component_name: (raw, scalar)}
-"""
+"""Python implementation of the hash-verified canonical OFIQ v1.1.0 profile."""
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
+import threading
 
-_PIPE = None
-_MEAS = None
+from ._version import __version__
+from .assessor import Assessor
+from .results import AssessmentResult, AssessmentStatus, ComponentResult, ComponentStatus, FailureCode
+
+_ASSESSOR: Assessor | None = None
+_ASSESSOR_LOCK = threading.Lock()
 
 
 def _lazy():
-    """Build (once) the shared pipeline + measures. Models load on first use."""
-    global _PIPE, _MEAS
-    if _PIPE is None:
-        from .config import OFIQConfig
-        from .measures.core import Measures
-        from .pipeline import OFIQPipeline
+    """Build one preflighted, internally locked assessor."""
+    global _ASSESSOR
+    if _ASSESSOR is None:
+        with _ASSESSOR_LOCK:
+            if _ASSESSOR is None:
+                _ASSESSOR = Assessor()
+    return _ASSESSOR
 
-        cfg = OFIQConfig()
-        _PIPE = OFIQPipeline(cfg)
-        _MEAS = Measures(cfg)
-    return _PIPE, _MEAS
+
+def assess_typed(image: "str | object") -> AssessmentResult:
+    """Assess one image and retain typed image/component failure states."""
+    return _lazy().assess(image)
 
 
 def assess(image: "str | object") -> dict:
@@ -42,23 +36,32 @@ def assess(image: "str | object") -> dict:
 
     Returns:
         Mapping of OFIQ component name to ``(raw native value, 0-100 scalar)``. Empty
-        if no face is detected.
+        only if no face is detected.
+
+    Raises:
+        FileNotFoundError: The supplied path cannot be decoded as an image.
+        ValueError: The supplied array is not a non-empty BGR uint8 image.
+        RuntimeError: Canonical preprocessing fails before component assessment.
     """
-    import numpy as np
-
-    pipe, meas = _lazy()
-    if isinstance(image, np.ndarray):
-        bgr = image
-    else:
-        import cv2
-
-        bgr = cv2.imread(str(image))
-        if bgr is None:
-            raise FileNotFoundError(f"could not read image: {image}")
-    session = pipe.process(bgr)
-    if session.bbox is None:
-        return {}
-    return meas.compute(session)
+    result = assess_typed(image)
+    if result.failure is not None:
+        if result.failure.code is FailureCode.NO_FACE:
+            return {}
+        if result.failure.code is FailureCode.IMAGE_READ_ERROR:
+            raise FileNotFoundError(result.failure.message)
+        if result.failure.code is FailureCode.INVALID_IMAGE:
+            raise ValueError(result.failure.message)
+        raise RuntimeError(f"{result.failure.code.value}: {result.failure.message}")
+    return result.as_legacy_dict()
 
 
-__all__ = ["assess", "__version__"]
+__all__ = [
+    "AssessmentResult",
+    "AssessmentStatus",
+    "Assessor",
+    "ComponentResult",
+    "ComponentStatus",
+    "__version__",
+    "assess",
+    "assess_typed",
+]

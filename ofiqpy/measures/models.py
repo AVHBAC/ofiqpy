@@ -12,6 +12,7 @@ import numpy as np
 
 from ..align import landmarked_region
 from ..sigmoid import _round_half_away, scalar_conversion
+from .types import MeasureValue
 
 
 # --- C08 Sharpness ---
@@ -39,14 +40,16 @@ def sharpness(s, rtree, num_trees):
     face_mask = (landmarked_region(s.landmarks, H, W) * 255).astype(np.uint8)
     contours, _ = cv2.findContours(face_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
-        return "Sharpness", None, -1
+        return MeasureValue.unavailable("Sharpness")
     x, y, w, h = cv2.boundingRect(contours[0])
     gray = cv2.cvtColor(s.image[y : y + h, x : x + w], cv2.COLOR_BGR2GRAY)
     mask_crop = face_mask[y : y + h, x : x + w]
     feats = _sharpness_features(gray, mask_crop)
     _, raw_out = rtree.predict(feats, flags=cv2.ml.STAT_MODEL_RAW_OUTPUT)
     native = num_trees - float(raw_out[0, 0])
-    return "Sharpness", native, scalar_conversion(native, h=1, a=-14.0, s=115.0, x0=-20.0, w=15.0, round=True)
+    return MeasureValue.success(
+        "Sharpness", native, scalar_conversion(native, h=1, a=-14.0, s=115.0, x0=-20.0, w=15.0, round=True)
+    )
 
 
 # --- occlusion measures (linear 100*(1-alpha)) ---
@@ -65,7 +68,7 @@ def eyes_visible(s):
     rc = get_middle([al[68], al[72]])
     cosy = math.cos(math.radians(s.pitch))
     if abs(cosy) < 1e-6:
-        return "EyesVisible", 1.0, -1
+        return MeasureValue.unavailable("EyesVisible")
     ied = get_distance(lc, rc) / cosy
     V = int(math.floor(ied / 20.0))
 
@@ -78,10 +81,10 @@ def eyes_visible(s):
     cv2.drawContours(EVZ, [evz_rect((60, 68)), evz_rect((68, 76))], -1, 1, -1)
     tot = int(EVZ.sum())
     if tot == 0:
-        return "EyesVisible", 1.0, -1
+        return MeasureValue.unavailable("EyesVisible")
     occluded = int((EVZ * (1 - occ)).sum())
     alpha = occluded / tot
-    return "EyesVisible", alpha, _linear(alpha)
+    return MeasureValue.success("EyesVisible", alpha, _linear(alpha))
 
 
 def mouth_occlusion(s):
@@ -91,31 +94,33 @@ def mouth_occlusion(s):
     cv2.fillConvexPoly(mask, poly, 1)
     tot = int(mask.sum())
     if tot == 0:
-        return "MouthOcclusionPrevention", 0.0, -1
+        return MeasureValue.unavailable("MouthOcclusionPrevention")
     occluded = int((mask * (1 - s.occlusion_mask)).sum())
     alpha = occluded / tot
-    return "MouthOcclusionPrevention", alpha, _linear(alpha)
+    return MeasureValue.success("MouthOcclusionPrevention", alpha, _linear(alpha))
 
 
 def face_occlusion(s):
     region = s.landmarked_region
     G = int(np.count_nonzero(region))
     if G == 0:
-        return "FaceOcclusionPrevention", 0.0, -1
+        return MeasureValue.unavailable("FaceOcclusionPrevention")
     occluded = int(np.count_nonzero(region * (1 - s.occlusion_mask)))
     alpha = occluded / G
-    return "FaceOcclusionPrevention", alpha, _linear(alpha)
+    return MeasureValue.success("FaceOcclusionPrevention", alpha, _linear(alpha))
 
 
 # --- C18 ExpressionNeutrality ---
-_IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], np.float32)
-_IMAGENET_STD = np.array([0.229, 0.224, 0.225], np.float32)
+_IMAGENET_MEAN = (0.485, 0.456, 0.406, 0.0)
+_IMAGENET_STD = (0.229, 0.224, 0.225, 0.0)
 
 
 def expression_neutrality(s, enet1, enet2, boost):
     crop = s.aligned_face[148 : 148 + 340, 144 : 144 + 328]
-    t = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-    t = (t - _IMAGENET_MEAN) / _IMAGENET_STD
+    t = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB).astype(np.float32)
+    t = cv2.divide(t, (255.0, 255.0, 255.0, 0.0))
+    t = cv2.subtract(t, _IMAGENET_MEAN)
+    t = cv2.divide(t, _IMAGENET_STD)
     r1 = cv2.resize(t, (224, 224), interpolation=cv2.INTER_LINEAR)
     r2 = cv2.resize(t, (260, 260), interpolation=cv2.INTER_LINEAR)
     b1 = np.ascontiguousarray(r1.transpose(2, 0, 1)[None])
@@ -125,4 +130,6 @@ def expression_neutrality(s, enet1, enet2, boost):
     feats = np.hstack([f1, f2]).astype(np.float32)
     _, pred = boost.predict(feats, flags=cv2.ml.DTREES_PREDICT_SUM)
     native = float(pred[0, 0])
-    return "ExpressionNeutrality", native, scalar_conversion(native, h=100, a=0, s=1, x0=-5000.0, w=5000.0, round=True)
+    return MeasureValue.success(
+        "ExpressionNeutrality", native, scalar_conversion(native, h=100, a=0, s=1, x0=-5000.0, w=5000.0, round=True)
+    )

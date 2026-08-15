@@ -4,22 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ofiqpy"
-version = "0.1.1"
-description = "A faithful Python port of OFIQ v1.1.0 (ISO/IEC 29794-5 face image quality), matching the reference within ±1."
+dynamic = ["version"]
+description = "Python implementation of the hash-verified canonical OFIQ v1.1.0 profile"
 readme = "README.md"
-requires-python = ">=3.9"
-license = { text = "MIT" }
+requires-python = ">=3.11"
+license = "MIT"
 authors = [{ name = "Aaron Storey" }]
 keywords = ["face", "image quality", "biometrics", "ISO 29794-5", "OFIQ", "FIQA"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
 
-# Versions pinned to OFIQ v1.1.0's own toolchain for bit-faithful model inference.
+# Versions used by the reviewed canonical OFIQ v1.1.0 profile.
 dependencies = [
     "numpy>=1.23,<2",
     "opencv-python-headless==4.5.5.64",
@@ -27,9 +29,22 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-verify = ["pandas>=1.5"]              # the live-OFIQ ±1 gate harness
+ci = [
+    "cmake==3.26.4; python_version >= '3.11' and python_version < '3.13' and sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "conan==2.18.1; python_version >= '3.11' and python_version < '3.13' and sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
 docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.24"]
-dev = ["pytest>=7", "ruff>=0.4", "mypy>=1.8", "pandas>=1.5", "jupyter>=1.0"]
+notebooks = ["jupyter>=1", "matplotlib>=3.7"]
+dev = [
+    "pytest>=7",
+    "ruff>=0.4",
+    "mypy>=1.8",
+    "build>=1",
+    "setuptools==80.9.0",
+    "wheel==0.45.1",
+    "jupyter>=1",
+    "matplotlib>=3.7",
+]
 
 [project.urls]
 Homepage = "https://github.com/AVHBAC/ofiqpy"
@@ -43,24 +58,22 @@ ofiqpy = "ofiqpy.cli:main"
 [tool.setuptools.packages.find]
 include = ["ofiqpy*"]
 
+[tool.setuptools.dynamic]
+version = {attr = "ofiqpy._version.__version__"}
+
 [tool.ruff]
 line-length = 130
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
-ignore = ["E741"]  # ambiguous var name (l/r used for landmark coords, faithful to OFIQ)
-
-[tool.ruff.lint.per-file-ignores]
-# The live-OFIQ gate harnesses manipulate sys.path before importing (E402).
-"tests/gate_slice.py" = ["E402"]
-"tests/verify_ofiq.py" = ["E402"]
+ignore = ["E741"]  # coordinate variables mirror the corresponding OFIQ formulas
 
 [tool.ruff.format]
 quote-style = "double"
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 files = ["ofiqpy"]
 ignore_missing_imports = true   # cv2 / onnxruntime / numpy C-extensions have no stubs
 warn_redundant_casts = true

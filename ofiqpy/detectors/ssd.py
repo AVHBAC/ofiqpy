@@ -1,4 +1,4 @@
-"""SSD face detector — faithful port of opencv_ssd_face_detector.cpp.
+"""SSD face detector derived from opencv_ssd_face_detector.cpp.
 
 Caffe model via OpenCV DNN (NOT onnxruntime): 300x300, BGR mean (104,117,123),
 pad 20%, conf>=0.4, min rel face size 0.05, primary = largest area.

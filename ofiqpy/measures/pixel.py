@@ -1,6 +1,6 @@
 """Pixel/exposure measures: C01, C02, C04(var), C05, C06, C07, C10.
 
-Faithful to BackgroundUniformity/IlluminationUniformity/Luminance/Under/Over
+Derived from BackgroundUniformity/IlluminationUniformity/Luminance/Under/Over
 Exposure/DynamicRange/NaturalColour.cpp. Note the non-sigmoid mappings:
 LuminanceVariance=sin, OverExposure=1/(v+0.01), DynamicRange=12.5*entropy,
 IlluminationUniformity=100*D^0.3.
@@ -16,6 +16,7 @@ import numpy as np
 from ..align import luminance
 from ..sigmoid import _round_half_away, scalar_conversion
 from .helpers import get_distance, get_middle
+from .types import MeasureValue
 
 MOUTH_CENTER_PAIR = (90, 94)
 
@@ -61,13 +62,13 @@ def background_uniformity(s):
     B = ((Pc == 0) & (S == 0)).astype(np.uint8)
     B = cv2.erode(B, np.ones((4, 4), np.uint8), iterations=1)
     if B.sum() == 0:
-        return "BackgroundUniformity", None, -1
+        return MeasureValue.unavailable("BackgroundUniformity")
     L = luminance(I).astype(np.float32)
     sx = cv2.Sobel(L, cv2.CV_32F, 1, 0, ksize=-1)  # Scharr
     sy = cv2.Sobel(L, cv2.CV_32F, 0, 1, ksize=-1)
     G = np.sqrt(sx.astype(np.float64) ** 2 + sy.astype(np.float64) ** 2)
     raw = float(G[B != 0].mean())
-    return "BackgroundUniformity", raw, scalar_conversion(raw, h=190, a=1, s=-1, x0=10, w=100, round=True)
+    return MeasureValue.success("BackgroundUniformity", raw, scalar_conversion(raw, h=190, a=1, s=-1, x0=10, w=100, round=True))
 
 
 # --- C02 IlluminationUniformity ---
@@ -79,12 +80,12 @@ def illumination_uniformity(s):
     lr = _slice_roi(maskedL, left_roi)
     rr = _slice_roi(maskedL, right_roi)
     if lr.size == 0 or rr.size == 0:
-        return "IlluminationUniformity", None, -1
+        return MeasureValue.unavailable("IlluminationUniformity")
     hL, _ = _norm_hist(lr)  # empty mask -> counts black pixels too
     hR, _ = _norm_hist(rr)
     D = float(np.minimum(hL, hR).sum())
     scalar = _round_half_away(100.0 * (D**0.3))
-    return "IlluminationUniformity", D, max(0.0, min(100.0, scalar))
+    return MeasureValue.success("IlluminationUniformity", D, max(0.0, min(100.0, scalar)))
 
 
 # --- C04 LuminanceVariance (sin mapping) ---
@@ -95,7 +96,7 @@ def luminance_variance(s):
     mean = float((hist * idx).sum())
     var = float((hist * (idx - mean) ** 2).sum())
     scalar = _round_half_away(100.0 * math.sin((60 * var) / (60 * var + 1) * math.pi))
-    return "LuminanceVariance", var, max(0.0, min(100.0, scalar))
+    return MeasureValue.success("LuminanceVariance", var, max(0.0, min(100.0, scalar)))
 
 
 def _exposure(s, lo, hi):
@@ -112,17 +113,19 @@ def _exposure(s, lo, hi):
 def under_exposure(s):
     raw = _exposure(s, 0, 25)
     if raw is None:
-        return "UnderExposurePrevention", None, -1
-    return "UnderExposurePrevention", raw, scalar_conversion(raw, h=120, a=0.832, s=-1, x0=0.92, w=0.05, round=True)
+        return MeasureValue.unavailable("UnderExposurePrevention")
+    return MeasureValue.success(
+        "UnderExposurePrevention", raw, scalar_conversion(raw, h=120, a=0.832, s=-1, x0=0.92, w=0.05, round=True)
+    )
 
 
 # --- C06 OverExposure (reciprocal mapping) ---
 def over_exposure(s):
     raw = _exposure(s, 247, 255)
     if raw is None:
-        return "OverExposurePrevention", None, -1
+        return MeasureValue.unavailable("OverExposurePrevention")
     scalar = _round_half_away(1.0 / (raw + 0.01))
-    return "OverExposurePrevention", raw, max(0.0, min(100.0, scalar))
+    return MeasureValue.success("OverExposurePrevention", raw, max(0.0, min(100.0, scalar)))
 
 
 # --- C07 DynamicRange (12.5*entropy) ---
@@ -131,17 +134,18 @@ def dynamic_range(s):
     hist = np.bincount(L[s.landmarked_region != 0].ravel(), minlength=256).astype(np.float64)
     tot = hist.sum()
     if tot == 0:
-        return "DynamicRange", None, -1
+        return MeasureValue.unavailable("DynamicRange")
     p = hist / tot
     nz = p[p != 0]
     ent = float(-(nz * np.log2(nz)).sum())
     scalar = _round_half_away(12.5 * ent)
-    return "DynamicRange", ent, max(0.0, min(100.0, scalar))
+    return MeasureValue.success("DynamicRange", ent, max(0.0, min(100.0, scalar)))
 
 
 # --- C10 NaturalColour ---
 _D50 = np.array([[0.43605, 0.38508, 0.14309], [0.22249, 0.71689, 0.06062], [0.01393, 0.09710, 0.71419]])
 _WHITE = (0.964221, 1.0, 0.825211)
+LAB_K = 24289 / 27.0
 
 
 def _srgb_eotf(x):
@@ -154,14 +158,16 @@ def natural_colour(s):
     left_roi, right_roi, _ = _cheek_rois(s.aligned_landmarks)
     reduced = cv2.hconcat([_slice_roi(seg, right_roi), _slice_roi(seg, left_roi)])
     if reduced.size == 0:
-        return "NaturalColour", 100.0, scalar_conversion(100.0, h=200, a=1, s=-1, x0=0.0, w=10.0, round=True)
+        return MeasureValue.success(
+            "NaturalColour", 100.0, scalar_conversion(100.0, h=200, a=1, s=-1, x0=0.0, w=10.0, round=True)
+        )
     Rm = reduced[:, :, 2].mean() / 255.0
     Gm = reduced[:, :, 1].mean() / 255.0
     Bm = reduced[:, :, 0].mean() / 255.0
     r, g, b = _srgb_eotf(Rm), _srgb_eotf(Gm), _srgb_eotf(Bm)
     X, Y, Z = _D50 @ np.array([r, g, b])
     Xr, Yr, Zr = X / _WHITE[0], Y / _WHITE[1], Z / _WHITE[2]
-    k, eps = 24389 / 27.0, 216 / 24389.0
+    k, eps = LAB_K, 216 / 24389.0
 
     def f(t):
         return ((k * t) + 16) / 116 if t <= eps else t ** (1 / 3)
@@ -174,4 +180,4 @@ def natural_colour(s):
         raw = math.sqrt(da * da + db * db)
     else:
         raw = 100.0
-    return "NaturalColour", raw, scalar_conversion(raw, h=200, a=1, s=-1, x0=0.0, w=10.0, round=True)
+    return MeasureValue.success("NaturalColour", raw, scalar_conversion(raw, h=200, a=1, s=-1, x0=0.0, w=10.0, round=True))

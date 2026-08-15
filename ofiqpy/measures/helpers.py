@@ -1,4 +1,4 @@
-"""Shared measure helpers — faithful to FaceMeasures.cpp / adnet_FaceMap.h."""
+"""Shared measure helpers derived from FaceMeasures.cpp and adnet_FaceMap.h."""
 
 from __future__ import annotations
 

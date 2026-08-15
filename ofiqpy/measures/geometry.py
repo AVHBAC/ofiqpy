@@ -1,6 +1,6 @@
 """Geometry/presentation measures: C11, C12, C13, C19, C24-C27.
 
-Faithful to InterEyeDistance/CropOfTheFaceImage/SingleFacePresent/EyesOpen/
+Derived from InterEyeDistance/CropOfTheFaceImage/SingleFacePresent/EyesOpen/
 MouthClosed.cpp. IED yaw = pose[1] (== our s.pitch, confirmed by exact HeadPose match).
 """
 
@@ -21,6 +21,7 @@ from .helpers import (
     get_middle,
     max_pair_distance,
 )
+from .types import MeasureValue
 
 EPS = 1e-6
 
@@ -32,10 +33,10 @@ def inter_eye_distance(s):
     R = get_middle([lm[RIGHT_EYE_CORNERS[0]], lm[RIGHT_EYE_CORNERS[1]]])
     cos_yaw = math.cos(math.radians(s.pitch))
     if abs(cos_yaw) < EPS:
-        return "InterEyeDistance", None, -1  # FailureToAssess
+        return MeasureValue.unavailable("InterEyeDistance")
     raw = get_distance(L, R) * (1.0 / cos_yaw)
     scalar = scalar_conversion(raw, h=100, a=0, s=1, x0=70.0, w=20.0, round=True)
-    return "InterEyeDistance", raw, scalar
+    return MeasureValue.success("InterEyeDistance", raw, scalar)
 
 
 def crop_of_face(s):
@@ -52,22 +53,30 @@ def crop_of_face(s):
     raw_right = (W - L[0]) / ied  # C25 Rightward
     raw_above = eye_mid[1] / t  # C26 MarginAbove
     raw_below = (H - eye_mid[1]) / t  # C27 MarginBelow
-    return {
-        "LeftwardCropOfTheFaceImage": (raw_left, scalar_conversion(raw_left, h=100, x0=0.9, w=0.1, round=True)),
-        "RightwardCropOfTheFaceImage": (raw_right, scalar_conversion(raw_right, h=100, x0=0.9, w=0.1, round=True)),
-        "MarginAboveOfTheFaceImage": (raw_above, scalar_conversion(raw_above, h=100, x0=1.4, w=0.1, round=True)),
-        "MarginBelowOfTheFaceImage": (raw_below, scalar_conversion(raw_below, h=100, x0=1.8, w=0.1, round=True)),
-    }
+    return (
+        MeasureValue.success(
+            "LeftwardCropOfTheFaceImage", raw_left, scalar_conversion(raw_left, h=100, x0=0.9, w=0.1, round=True)
+        ),
+        MeasureValue.success(
+            "RightwardCropOfTheFaceImage", raw_right, scalar_conversion(raw_right, h=100, x0=0.9, w=0.1, round=True)
+        ),
+        MeasureValue.success(
+            "MarginAboveOfTheFaceImage", raw_above, scalar_conversion(raw_above, h=100, x0=1.4, w=0.1, round=True)
+        ),
+        MeasureValue.success(
+            "MarginBelowOfTheFaceImage", raw_below, scalar_conversion(raw_below, h=100, x0=1.8, w=0.1, round=True)
+        ),
+    )
 
 
 def single_face_present(s):
     """C11 — f = 2nd-largest/largest face area; qc = round(100*(1-f)). No sigmoid."""
     areas = s.face_areas
     if not areas:
-        return "SingleFacePresent", None, -1
+        return MeasureValue.unavailable("SingleFacePresent")
     f = 0.0 if len(areas) == 1 else areas[1] / areas[0]
     qc = c_round(100.0 * (1.0 - f))
-    return "SingleFacePresent", f, max(0.0, min(100.0, qc))
+    return MeasureValue.success("SingleFacePresent", f, max(0.0, min(100.0, qc)))
 
 
 def eyes_open(s):
@@ -77,7 +86,7 @@ def eyes_open(s):
     right = max_pair_distance(al, RIGHT_EYE_LID_PAIRS)
     raw = min(left, right) / tmetric(al)
     scalar = scalar_conversion(raw, h=100, a=0, s=1, x0=0.02, w=0.01, round=True)
-    return "EyesOpen", raw, scalar
+    return MeasureValue.success("EyesOpen", raw, scalar)
 
 
 def mouth_closed(s):
@@ -85,7 +94,7 @@ def mouth_closed(s):
     lm = s.landmarks
     t = tmetric(lm)
     if t == 0.0:
-        return "MouthClosed", None, -1
+        return MeasureValue.unavailable("MouthClosed")
     raw = max_pair_distance(lm, MOUTH_INNER_PAIRS) / t
     scalar = scalar_conversion(raw, h=100, a=1, s=-1, x0=0.2, w=0.06, round=True)
-    return "MouthClosed", raw, scalar
+    return MeasureValue.success("MouthClosed", raw, scalar)

@@ -1,4 +1,4 @@
-"""OFIQ pipeline orchestrator — faithful port (OFIQImpl.cpp preprocess order).
+"""Canonical pipeline orchestrator following OFIQImpl.cpp preprocessing order.
 
 detect -> pose -> landmarks -> align -> parse -> occlusion -> region -> luminance,
 each product stored on Session and reused by measures.
@@ -6,6 +6,7 @@ each product stored on Session and reused by measures.
 
 from __future__ import annotations
 
+import cv2
 import numpy as np
 
 from .align import align, landmarked_region
@@ -17,6 +18,9 @@ from .session import Session
 
 class OFIQPipeline:
     def __init__(self, cfg: OFIQConfig | None = None, enable_pose=True, enable_parsing=True, enable_occlusion=True):
+        # The pip wheel's optimized float-resize path differs from OFIQ's conan
+        # OpenCV 4.5.5 build. The generic path is bit-identical on the reviewed tensors.
+        cv2.setUseOptimized(False)
         self.cfg = cfg or OFIQConfig()
         d = self.cfg.detector()
         self.detector = SSDDetector(
@@ -52,6 +56,15 @@ class OFIQPipeline:
 
             self._occ = OcclusionSeg(self.cfg.resolve(self.cfg.measure("FaceOcclusionSegmentation")["model_path"]))
         return self._occ
+
+    def preload(self) -> None:
+        """Load every enabled canonical preprocessing model before assessment starts."""
+        if self.enable_pose:
+            self._get_pose()
+        if self.enable_parsing:
+            self._get_parser()
+        if self.enable_occlusion:
+            self._get_occ()
 
     def process(self, image: np.ndarray) -> Session:
         s = Session(image=image)

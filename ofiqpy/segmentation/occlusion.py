@@ -1,4 +1,4 @@
-"""Face occlusion segmentation — faithful port of FaceOcclusionSegmentation.cpp.
+"""Face occlusion segmentation derived from FaceOcclusionSegmentation.cpp.
 
 Aligned 616x616 -> crop [96:520, 96:520] (424) -> resize 224 -> RGB /255 ONNX
 -> logit >= 0 => 1 (non-occluded) -> NEAREST resize 424 -> place into 616 (96px border=0).

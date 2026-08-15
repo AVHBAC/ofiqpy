@@ -1,4 +1,4 @@
-"""ADNet 98-point landmarks — faithful port of adnet_landmarks.cpp + utils.cpp squaring.
+"""ADNet 98-point landmarks derived from adnet_landmarks.cpp and utils.cpp.
 
 ONNX input 'input' [1,3,256,256] BGR planes, norm 2p/255-1; output '3209' [1,98,2];
 denorm (v+1)/2*255; back-map to original px via square-box scale.
@@ -23,6 +23,14 @@ def _ceil(x):
 
 def _round(x):
     return int(math.copysign(math.floor(abs(x) + 0.5), x))
+
+
+def _adnet_input(crop: np.ndarray) -> np.ndarray:
+    """Match OpenCV ``convertTo(CV_32F, 2./255, -1.)`` with one final rounding."""
+    alpha = float(np.float32(2.0 / 255.0))
+    beta = float(np.float32(-1.0))
+    normalized = (crop.astype(np.float64) * alpha + beta).astype(np.float32)
+    return np.ascontiguousarray(normalized.transpose(2, 0, 1)[None])
 
 
 def make_square_bbox(left, top, w, h):
@@ -69,16 +77,15 @@ class ADNetLandmarker:
         crop = padded[y : y + sh, x : x + sw]
         if crop.shape[:2] != (256, 256):
             crop = cv2.resize(crop, (256, 256), interpolation=cv2.INTER_LINEAR)
-        arr = crop.astype(np.float32) * (2.0 / 255.0) - 1.0  # [-1,1], BGR planes
-        blob = np.transpose(arr, (2, 0, 1))[None]  # (1,3,256,256)
+        blob = _adnet_input(crop)
         out = self.sess.run([self.out_name], {"input": blob})[0].reshape(-1)
-        out = (out + 1.0) / 2.0 * 255.0  # denorm to 256-space
-        scale = sq[3] / 256.0  # OFIQ uses square HEIGHT/256 (adnet_landmarks.cpp:313),
+        out = (out + np.float32(1.0)) / np.float32(2.0) * np.float32(255.0)
+        scale = np.float32(sq[3]) / np.float32(256.0)  # OFIQ uses square HEIGHT/256 (adnet_landmarks.cpp:313),
         #                          not width — the floor/ceil square can be 1px non-square.
-        ox = sq_pad[0] - tx  # original square xleft
-        oy = sq_pad[1] - ty
+        ox = np.float32(sq_pad[0] - tx)  # original square xleft
+        oy = np.float32(sq_pad[1] - ty)
         pts = np.empty((98, 2), np.float64)
         for i in range(98):
-            pts[i, 0] = _round(out[2 * i] * scale + ox)
-            pts[i, 1] = _round(out[2 * i + 1] * scale + oy)
+            pts[i, 0] = _round(float(np.float32(out[2 * i] * scale + ox)))
+            pts[i, 1] = _round(float(np.float32(out[2 * i + 1] * scale + oy)))
         return pts

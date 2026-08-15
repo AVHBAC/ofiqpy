@@ -1,8 +1,4 @@
-"""OFIQ config loader — parses ofiq_config.jaxn and resolves model paths.
-
-Faithful port of OFIQ v1.1.0. Model files and config are reused directly from the
-reference OFIQ-Project checkout so the port loads the *same* weights OFIQ uses.
-"""
+"""Load and resolve the hash-verified canonical OFIQ v1.1.0 data profile."""
 
 from __future__ import annotations
 
@@ -10,13 +6,14 @@ import json
 import os
 from pathlib import Path
 
-# OFIQ's models + config are reused directly (they are separately licensed and NOT bundled).
-# Point ofiqpy at an OFIQ checkout's data/ directory via the OFIQPY_OFIQ_DATA env var, e.g.:
-#     export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data
-# Falls back to ./OFIQ-Project/data (relative to the current directory) if unset.
+from .profile import CANONICAL_PROFILE, CanonicalProfile, ProfileVerification
+
 _DEFAULT_DATA = Path("OFIQ-Project/data")
-OFIQ_DATA = Path(os.environ.get("OFIQPY_OFIQ_DATA", _DEFAULT_DATA))
-OFIQ_CONFIG = OFIQ_DATA / "ofiq_config.jaxn"
+
+
+def default_data_root() -> Path:
+    """Resolve the OFIQ data directory at call time, not module-import time."""
+    return Path(os.environ.get("OFIQPY_OFIQ_DATA", _DEFAULT_DATA))
 
 
 def _strip_jaxn(text: str) -> str:
@@ -61,18 +58,28 @@ def _strip_jaxn(text: str) -> str:
     return s
 
 
-def load_config(path: Path = OFIQ_CONFIG) -> dict:
+def load_config(path: Path) -> dict:
     raw = Path(path).read_text()
     data = json.loads(_strip_jaxn(raw))
     return data["config"]
 
 
 class OFIQConfig:
-    """Parsed OFIQ config with model-path resolution against the OFIQ data root."""
+    """Verified canonical OFIQ v1.1.0 config and model-path resolver."""
 
-    def __init__(self, path: Path = OFIQ_CONFIG, data_root: Path = OFIQ_DATA):
-        self.cfg = load_config(path)
+    def __init__(self, path: Path | None = None, data_root: Path | None = None):
+        if data_root is None:
+            data_root = Path(path).parent if path is not None else default_data_root()
         self.data_root = Path(data_root)
+        canonical_path = self.data_root / "ofiq_config.jaxn"
+        self.path = Path(path) if path is not None else canonical_path
+        if self.path != canonical_path:
+            raise ValueError(
+                f"the canonical profile requires config and models from one data root: expected {canonical_path}, got {self.path}"
+            )
+        self.profile: CanonicalProfile = CANONICAL_PROFILE
+        self.verification: ProfileVerification = self.profile.verify(self.data_root)
+        self.cfg = load_config(self.path)
         self.params = self.cfg["params"]
 
     def resolve(self, rel_path: str) -> Path:
@@ -85,6 +92,7 @@ class OFIQConfig:
         return self.params["measures"].get(name, {})
 
     def sigmoid_params(self, measure: str) -> dict:
+        """Return canonical JAXN values for inspection; runtime overrides are unsupported."""
         return self.measure(measure).get("Sigmoid", {})
 
     def detector(self) -> dict:
