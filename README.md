@@ -1,143 +1,158 @@
-# ofiqpy — a faithful Python port of OFIQ v1.1.0
+# ofiqpy
 
-[![CI & Release](https://github.com/AVHBAC/ofiqpy/actions/workflows/workflow.yml/badge.svg)](https://github.com/AVHBAC/ofiqpy/actions/workflows/workflow.yml)
-[![Docs](https://github.com/AVHBAC/ofiqpy/actions/workflows/docs.yml/badge.svg)](https://avhbac.github.io/ofiqpy/)
-[![PyPI](https://img.shields.io/pypi/v/ofiqpy.svg)](https://pypi.org/project/ofiqpy/)
-[![Python](https://img.shields.io/pypi/pyversions/ofiqpy.svg)](https://pypi.org/project/ofiqpy/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+`ofiqpy` is a Python reimplementation of the fixed, canonical BSI OFIQ v1.1.0
+quality-assessment profile. It computes the 27 ISO/IEC 29794-5 components exposed by
+OFIQ v1.1.0 plus `UnifiedQualityScore` using OFIQ's model files.
 
-A behavior-preserving Python reimplementation of the BSI **OFIQ** ISO/IEC 29794-5
-face image quality library. `ofiqpy` **reuses OFIQ's own model files and reproduces
-its exact `.cpp` algorithms**, matching the live OFIQ reference to within **±1** per
-component (the ISO/IEC 29794-5 Annex A.2 conformance criterion).
+The supported contract is intentionally narrow:
 
-📖 **Docs: <https://avhbac.github.io/ofiqpy/>**
+- OFIQ source tag `v1.1.0`, commit `bb5dc91d00477e02ce53d2530d28e35021484393`.
+- The canonical `ofiq_config.jaxn` with SHA-256
+  `e117286706d799a1e23130db01cfdff7ef36d157b22ecf68dd196052a8a8d0b3`.
+- Twelve exact model artifacts totaling 453,497,937 bytes. `OFIQConfig` hashes every
+  required artifact before creating inference sessions.
+- All 28 canonical output components. Arbitrary JAXN measure lists, scalar overrides,
+  and the full C++ API are not implemented.
 
-> Status: **full coverage + near-exact parity.** All 27 ISO components + UnifiedQualityScore,
-> an OFIQ-compatible CSV writer, a CLI, and a parallel batch runner — all gated against
-> live `OFIQSampleApp`. Validated on **1,000+ real CelebA images**: 27/28 components fully
-> conformant (±1 on every image, most bit-exact); ~99.99% of all component-image pairs
-> within ±1. The rare per-image residuals are numerical boundaries of discrete/learned
-> models (RTrees vote, AdaBoost score, round tie), not algorithm gaps.
+## Confirmed parity evidence
 
-## Install & run
+The strict gate runs the live C++ `OFIQSampleApp` and this package on all 28 real BSI
+conformance images. It rejects missing images, duplicate identities, missing components,
+non-numeric values, and status mismatches.
+
+At the reviewed source state on 2026-08-14:
+
+| Observation | Result |
+|---|---:|
+| Official C++ conformance suite | 787 / 787 passed |
+| Image/component observations | 784 / 784 present |
+| Scalar values exactly equal | 784 / 784 |
+| Scalar values within tolerance 0 | 784 / 784 |
+| Success/FailureToAssess status equal | 784 / 784 |
+| Raw values equal at six-decimal CSV precision | 702 / 784 |
+| Raw values within the named component policy | 784 / 784 |
+
+Raw values determine the verdict under the immutable
+`bsi-ofiq-v1.1.0-cpu-raw-csv-v1` component policy. The policy compares the six-decimal
+values emitted by `OFIQSampleApp`; ten deterministic components require equality and each
+remaining component has a unit-specific bound and rationale. Raw values are excluded only
+when either implementation reports `FailureToAssess`, where OFIQ does not define a raw
+result. The earlier unbound 1,197-image and universal bit-exactness claims are not used as
+release evidence.
+
+A separate, non-redistributed diagnostic reran the recovered 1,197-image CelebA selection
+with aggregate provenance. All 33,516 statuses matched; 33,483 scalars were exact and all
+were within one point; all 33,430 defined raw comparisons met the component policy. This
+binds the currently available bytes but does not retroactively prove that the original
+unhashed run used identical bytes. See [Conformance](docs/conformance.md).
+
+## Install and configure
 
 ```bash
-pip install ofiqpy
-export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data   # OFIQ's models (not bundled)
+python -m pip install ofiqpy
 
-ofiqpy -i face.jpg -o out.csv                        # CLI
+git clone --branch v1.1.0 https://github.com/BSI-OFIQ/OFIQ-Project.git ../OFIQ-Project
+(
+  cd ../OFIQ-Project/scripts
+  sh build.sh
+)
+
+export OFIQPY_OFIQ_ROOT="$(cd ../OFIQ-Project && pwd)"
+export OFIQPY_OFIQ_DATA="$OFIQPY_OFIQ_ROOT/data"
 ```
+
+The OFIQ build downloads the separately licensed models and BSI test images. `ofiqpy`
+does not bundle or redistribute those files. Initialization stops with an integrity error
+if the downloaded configuration or any required model differs from the reviewed profile.
+
+## Python API
+
+Use `Assessor` when status and failure information matters:
+
 ```python
+import os
+from pathlib import Path
+
+from ofiqpy import Assessor
+from ofiqpy.config import OFIQConfig
+
+data_root = Path(os.environ["OFIQPY_OFIQ_DATA"])
+assessor = Assessor(OFIQConfig(data_root=data_root))
+result = assessor.assess(data_root / "tests" / "images" / "r-01-frontal.png")
+
+print(result.status)
+print(result.components["UnifiedQualityScore"])
+```
+
+`Assessor` loads and validates the complete model graph before assessment and serializes
+access to mutable OpenCV/ONNX sessions. A component exception produces a typed
+`FailureToAssess` only for that component or compound component group; unaffected results
+are retained.
+
+The original mapping API remains as a compatibility adapter:
+
+```python
+import os
+from pathlib import Path
+
 from ofiqpy import assess
-scores = assess("face.jpg")            # {component: (raw, scalar)}
-print(scores["UnifiedQualityScore"])   # (magnitude, 0-100)
+
+image = Path(os.environ["OFIQPY_OFIQ_DATA"]) / "tests" / "images" / "r-01-frontal.png"
+scores = assess(image)
+print(scores["UnifiedQualityScore"])
 ```
 
-See [Installation](https://avhbac.github.io/ofiqpy/installation/) and
-[Quickstart](https://avhbac.github.io/ofiqpy/quickstart/).
+It returns `{component: (raw, scalar)}` and returns an empty mapping only when no face is
+detected. Unreadable paths, invalid arrays, and preprocessing failures raise instead of
+being collapsed into a no-face result. New integrations should use `Assessor.assess` or
+`assess_typed` when the typed failure detail is required.
 
-## Design
-
-- **Same weights.** Models are loaded directly from the reference checkout
-  `OFIQ-Project/data/models/` via `config.py` (SSD caffemodel, ADNet-98 ONNX,
-  3DDFA-V2 ONNX, BiSeNet parsing ONNX, occlusion-seg ONNX, ssim-248 ONNX, MagFace ONNX).
-  No re-training, no substitute backbones.
-- **Same math.** Detection, ADNet landmark crop/denorm, the 5-point LMEDS similarity
-  alignment to 616×616, the landmarked-region mask, `tmetric`, the generic
-  `h·(a+s·sigmoid(x;x0,w))` scalar mapping, and each measure are ported line-faithfully
-  from OFIQ's C++ (see per-module docstrings for `file:line` provenance).
-- **Same versions.** The isolated `.venv` pins **OpenCV 4.5.5** and **onnxruntime 1.18.1**
-  to match OFIQ's build (`libofiq_lib.so` links OpenCV 4.5.5; bundles onnxruntime 1.18.1).
-- **Gated, not asserted.** `tests/verify_ofiq.py` runs live OFIQ and checks
-  `|port_scalar − ofiq_scalar| ≤ 1` per image; `tests/gate_slice.py` reports it.
-
-## Conformance (1,000+ real CelebA images, port vs live OFIQ, ISO Annex A ±1)
-
-Validated on **1,197 real CelebA images**: **27 of 28 components fully conformant** (±1 on
-every image), 24 of them **bit-exact** (maxΔ=0). **~99.99% of all component-image pairs are
-within ISO ±1** (mean |Δ| ≤ 0.02 for every component).
-
-The rare per-image residuals:
-- **Sharpness — 1 image at Δ=2**: OFIQ's RTrees vote count differs by exactly 2 trees at a
-  split-threshold knife-edge (a sub-LSB feature difference flips 2 borderline votes through
-  the step-function forest). Bit-exact on the rest.
-- **BackgroundUniformity / ExpressionNeutrality / NoHeadCoverings — one ±1 image each**, a
-  single sigmoid/round boundary.
-
-Sharpness (RTrees) and ExpressionNeutrality (dual EfficientNet + AdaBoost) run OFIQ's own
-`cv2.ml` / ONNX models; UnifiedQualityScore runs OFIQ's MagFace ONNX. These four residuals
-are numerical boundaries of discrete/learned models, not algorithm gaps.
-
-### How parity was reached (the residual was a bug, not a build limit)
-
-An earlier version of this port was only ~96% conformant, and the residual was *wrongly*
-attributed to a build-level OpenCV float difference. To test that, ctypes bridges were
-built against OFIQ's own conan OpenCV static libs (`native/ofiq_cv.cpp`, `ofiq_ssd.cpp`)
-and used to compare OFIQ's compiled `estimateAffinePartial2D`, `warpAffine`, `resize`, and
-the SSD dnn forward pass against the pip `opencv-python` wheel. **Every OpenCV operation
-was bit-identical** — which disproved the build-level theory and localized the divergence
-to the **ADNet landmark back-projection**: OFIQ scales landmarks back with
-`squareBox.height / 256` (`adnet_landmarks.cpp:313`), but `makeSquareBoundingBox`'s
-`floor`/`ceil` can leave the box 1px non-square, and the port had used the *width*. On
-exactly-square detector boxes it matched; otherwise it drifted ~1px, propagating (via the
-alignment source points → affine → whole aligned face) into every landmark-sensitive
-measure. One-character fix (width→height); all 27 non-model components went bit-exact.
-
-The bridges in `native/` are diagnostic only — the runtime uses pip `cv2`, which is
-bit-identical to OFIQ's OpenCV. No source build of OpenCV was needed.
-
-## Layout
-
-```
-ofiqpy/
-  config.py            JAXN loader + OFIQ model resolver + sigmoid params
-  sigmoid.py           OFIQ ScalarConversion (Measure.h:271-285)
-  session.py           shared preprocessing products
-  pipeline.py          detect -> pose -> landmarks -> align -> parse -> occlusion -> region
-  detectors/ssd.py     SSD (OpenCV DNN, Caffe)
-  landmarks/adnet.py   ADNet-98 + square-crop helpers
-  align.py             616x616 alignment, landmarked region (GetFaceMask), tmetric, luminance
-  pose/tddfa.py        3DDFA-V2 pose
-  segmentation/        BiSeNet parsing, face-occlusion seg
-  measures/
-    core.py            model cache + dispatch; C03/C09/C17/C20, unified, HeadPose (slot swap)
-    geometry.py        C11,C12,C13,C19,C24-C27
-    pixel.py           C01,C02,C04(var),C05,C06,C07,C10
-    models.py          C08 Sharpness (RTrees), C14/C15/C16 occlusion, C18 Expression
-    helpers.py         get_distance/get_middle, c_round, landmark index maps
-  output.py            OFIQ-format CSV (named cols, raw + .scalar)
-  cli.py               OFIQSampleApp-compatible CLI
-tests/
-  verify_ofiq.py       runs live OFIQ, ±1 gate
-  gate_slice.py        full-coverage conformance runner
-```
-
-## Run
+## CLI and batch
 
 ```bash
-export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data
+ofiqpy \
+  -i "$OFIQPY_OFIQ_DATA/tests/images/r-01-frontal.png" \
+  -o assessment.csv
 
-ofiqpy -i <image|dir> -o out.csv               # single / small runs (OFIQ-format CSV)
-python -m ofiqpy.batch -i <dir> -o out.csv -w 8 --resume   # parallel batch
-
-# reproduce the conformance gate (needs a built OFIQSampleApp)
-export OFIQPY_OFIQ_ROOT=/path/to/OFIQ-Project
-export OFIQPY_TEST_IMAGES=/path/to/images
-python tests/gate_slice.py 1000
+python -m ofiqpy.batch \
+  -i "$OFIQPY_OFIQ_DATA/tests/images" \
+  -o assessments.csv \
+  --resume
 ```
 
-Full documentation: <https://avhbac.github.io/ofiqpy/>.
+The semicolon CSV uses the canonical 28-component OFIQ column order and preserves the
+full supplied/discovered image path. CSV quoting protects delimiters in paths. Resume
+validates the exact header and row width and uses the full path identity, so recursive
+duplicate basenames do not collide. Batch execution defaults to one worker because each
+worker owns a complete model graph; additional workers require an explicit `-w` value and
+start with Python's clean `spawn` process context. An unreadable image or preprocessing
+failure exits nonzero rather than silently writing a whole-image sentinel row.
 
-## License & attribution
+On the reviewed 64-image real-data workload, the 0.2.0 candidate processed 2.649 images/s
+at one worker, 2.391 at two, and 2.140 at four; median process-tree RSS rose from 1.292 GiB
+to 2.450 and 4.723 GiB. One worker is therefore the measured default for that host, not a
+universal optimum. See [Runtime performance](docs/performance.md).
 
-`ofiqpy` is released under the [MIT License](LICENSE).
+## Reproduce the strict gate
 
-It is a faithful port of **OFIQ** (Open Source Face Image Quality), developed by the German
-Federal Office for Information Security (BSI), Copyright © 2024, MIT-licensed
-(<https://github.com/BSI-OFIQ/OFIQ-Project>). Please acknowledge OFIQ when using ofiqpy.
+```bash
+python -m ofiqpy.conformance \
+  --ofiq-root "$OFIQPY_OFIQ_ROOT" \
+  --images "$OFIQPY_OFIQ_DATA/tests/images" \
+  --expected-count 28 \
+  --scalar-tolerance 0 \
+  --source-root "$PWD" \
+  --report conformance-report.json
+```
 
-**Models are not bundled.** ofiqpy loads OFIQ's own model files at runtime; they ship with
-OFIQ and may be licensed separately (see OFIQ's `LICENSE.md`). Obtain them from an OFIQ
-install and set `OFIQPY_OFIQ_DATA`. See [`NOTICE`](NOTICE) and the
-[licensing docs](https://avhbac.github.io/ofiqpy/licensing/).
+The command exits nonzero for any conformance failure or incomplete comparison. The JSON
+report binds the source tree, OFIQ and ofiqpy commits, official binary and library hashes,
+canonical config/model hashes, and the complete input set.
+
+## License and attribution
+
+`ofiqpy` is MIT-licensed. OFIQ is developed by the German Federal Office for Information
+Security (BSI) and is also MIT-licensed. OFIQ's models have their own license terms; review
+the license files downloaded into the OFIQ data directory before redistribution.
+
+This project is independent and is not endorsed by ISO, IEC, or BSI.

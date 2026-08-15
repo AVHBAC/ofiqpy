@@ -1,0 +1,128 @@
+{
+  "schema": "ofiqpy.runtime-benchmark-aggregate.v1",
+  "completed_utc": "2026-08-15T03:35:45Z",
+  "provenance_scope": "Aggregate-only real-data evidence; no licensed images or per-image identifiers are redistributed.",
+  "baseline": {
+    "git_commit": "c80fb388fe1ccecd17f60f296a1ef31bd95a1ee3",
+    "python_source_aggregate_sha256": "78510d204cb0eb1d7e13c5900484eeb7455e41e98f59e971f883277f9afb1ecd"
+  },
+  "candidate": {
+    "release": "0.2.0",
+    "python_source_aggregate_sha256": "33523313793d79bcca2ea9e5ea1f8373fbfbd39f4c9c2d8a98a7752f744602fe"
+  },
+  "environment": {
+    "platform": "Linux-6.1.0-52-amd64-x86_64-with-glibc2.36",
+    "machine": "x86_64",
+    "python": "3.11.14",
+    "physical_cpus": 24,
+    "logical_cpus": 32,
+    "memory_bytes": 134747688960
+  },
+  "method": {
+    "warmups_per_variant_and_scenario": 1,
+    "measured_repetitions": 3,
+    "measured_case_count": 24,
+    "variant_order": "Alternating baseline/current order by repetition",
+    "workers": [
+      1,
+      2,
+      4
+    ],
+    "idle_guard": "No launch_governed_ofiq.py or OFIQSampleApp process; at least 64 GiB available memory; at most 8 percent host CPU over two seconds before each case",
+    "peak_rss_scope": "Complete child process tree sampled every 20 milliseconds",
+    "multiworker_opencv_parent_flag_excluded": true
+  },
+  "real_inputs": {
+    "single": {
+      "dataset": "BSI OFIQ v1.1.0 conformance images",
+      "count": 28,
+      "benchmark_manifest_aggregate_sha256": "b9dd77ef1e48ff9c1e61057ee90ccd4796ab092a4d1b5140a41a53ac6f44ab6c"
+    },
+    "batch": {
+      "dataset": "CelebA original wild images",
+      "selection": "First 64 lexicographically sorted JPEG files from the licensed local dataset",
+      "count": 64,
+      "benchmark_manifest_aggregate_sha256": "4159db748a889bce80af739d03b8f049e39280d6701c774cafb087c415c575e6"
+    }
+  },
+  "single_image_medians": {
+    "baseline": {
+      "cold_first_assessment_seconds": 2.6006964039988816,
+      "warm_images_per_second": 2.004191136302888,
+      "warm_latency_ms": 495.7214354944881,
+      "process_wall_seconds": 17.129958474004525,
+      "peak_process_tree_rss_bytes": 1575542784,
+      "scalar_digest": "3c6d9aa658c03f978179c5394e40595f07e52f9f311a32d411706c6e6e1e5b77"
+    },
+    "candidate": {
+      "cold_first_assessment_seconds": 2.693071074987529,
+      "warm_images_per_second": 2.0601943363692663,
+      "warm_latency_ms": 483.26477850059746,
+      "process_wall_seconds": 17.061955424011103,
+      "peak_process_tree_rss_bytes": 1300377600,
+      "scalar_digest": "3c6d9aa658c03f978179c5394e40595f07e52f9f311a32d411706c6e6e1e5b77"
+    },
+    "candidate_change_percent": {
+      "cold_first_assessment_seconds": 3.5519205873707493,
+      "warm_images_per_second": 2.7943043481215346,
+      "warm_latency_ms": -2.5128340438748564,
+      "peak_process_tree_rss_bytes": -17.46478653543184
+    }
+  },
+  "batch_medians": {
+    "baseline": {
+      "1": {
+        "images_per_second": 2.655535329328216,
+        "elapsed_seconds": 24.100601973987068,
+        "peak_process_tree_rss_bytes": 1552793600,
+        "rows": 64,
+        "all_failure_to_assess_rows": 1
+      },
+      "2": {
+        "images_per_second": 2.5573023188667077,
+        "elapsed_seconds": 25.026372332999017,
+        "peak_process_tree_rss_bytes": 2983182336,
+        "rows": 64,
+        "all_failure_to_assess_rows": 1
+      },
+      "4": {
+        "images_per_second": 2.2416120166480944,
+        "elapsed_seconds": 28.55088192099356,
+        "peak_process_tree_rss_bytes": 5469126656,
+        "rows": 64,
+        "all_failure_to_assess_rows": 1
+      }
+    },
+    "candidate": {
+      "1": {
+        "images_per_second": 2.648794218821237,
+        "elapsed_seconds": 24.16193736200512,
+        "peak_process_tree_rss_bytes": 1387806720,
+        "rows": 64,
+        "all_failure_to_assess_rows": 1
+      },
+      "2": {
+        "images_per_second": 2.391159406221038,
+        "elapsed_seconds": 26.7652586579934,
+        "peak_process_tree_rss_bytes": 2630946816,
+        "rows": 64,
+        "all_failure_to_assess_rows": 1
+      },
+      "4": {
+        "images_per_second": 2.1399565757599444,
+        "elapsed_seconds": 29.907148922997294,
+        "peak_process_tree_rss_bytes": 5070958592,
+        "rows": 64,
+        "all_failure_to_assess_rows": 1
+      }
+    },
+    "throughput_change_from_one_worker_percent": {
+      "baseline_2_workers": -3.699179196623925,
+      "baseline_4_workers": -15.587189072902818,
+      "candidate_2_workers": -9.72649406924676,
+      "candidate_4_workers": -19.21016134230823
+    }
+  },
+  "internal_full_report_sha256": "20063e894e132c15ccdda317e37b3113d8778e8d478e343bf970b81ad2b81fdc",
+  "benchmark_harness_sha256": "373f61c6ec23ca4db60e43eb86808ee3966c1e57bb73adc4b7ef3b34c7cda1c2"
+}

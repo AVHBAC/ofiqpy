@@ -1,5 +1,5 @@
 site_name: ofiqpy
-site_description: A faithful Python port of OFIQ v1.1.0 (ISO/IEC 29794-5 face image quality)
+site_description: Python implementation of the hash-verified canonical OFIQ v1.1.0 profile
 site_url: https://avhbac.github.io/ofiqpy/
 repo_url: https://github.com/AVHBAC/ofiqpy
 repo_name: AVHBAC/ofiqpy
@@ -44,6 +44,8 @@ nav:
   - Installation: installation.md
   - Quickstart: quickstart.md
   - Architecture: architecture.md
+  - Runtime Performance: performance.md
+  - Architecture Review & ATG: review.md
   - Components: components.md
   - Conformance: conformance.md
   - CLI & Batch: cli.md

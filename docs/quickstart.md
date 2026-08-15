@@ -1,62 +1,59 @@
 # Quickstart
 
-Set `OFIQPY_OFIQ_DATA` to your OFIQ `data/` directory first (see
-[Installation](installation.md)).
+Set `OFIQPY_OFIQ_DATA` to the verified OFIQ v1.1.0 data directory first.
 
-## Python API
-
-```python
-from ofiqpy import assess
-
-scores = assess("face.jpg")
-# scores: {component_name: (raw_native_value, scalar_0_100)}
-
-raw, scalar = scores["UnifiedQualityScore"]
-print(f"unified quality: {scalar}/100 (magnitude {raw:.2f})")
-
-for name, (raw, scalar) in sorted(scores.items()):
-    print(f"{name:28} {scalar:3.0f}")
-```
-
-`assess` also accepts a BGR uint8 numpy array (as returned by `cv2.imread`):
+## Typed API
 
 ```python
-import cv2
-from ofiqpy import assess
-scores = assess(cv2.imread("face.jpg"))
-```
+import os
+from pathlib import Path
 
-## Lower-level API
-
-For access to the shared pipeline products (aligned face, landmarks, masks, pose):
-
-```python
-import cv2
+from ofiqpy import Assessor, AssessmentStatus
 from ofiqpy.config import OFIQConfig
-from ofiqpy.pipeline import OFIQPipeline
-from ofiqpy.measures.core import Measures
 
-cfg = OFIQConfig()
-pipe = OFIQPipeline(cfg)
-meas = Measures(cfg)
+data_root = Path(os.environ["OFIQPY_OFIQ_DATA"])
+image = data_root / "tests" / "images" / "r-01-frontal.png"
+assessor = Assessor(OFIQConfig(data_root=data_root))
+assessment = assessor.assess(image)
 
-session = pipe.process(cv2.imread("face.jpg"))
-# session.aligned_face, session.landmarks, session.aligned_landmarks,
-# session.parsing, session.occlusion_mask, session.yaw/pitch/roll ...
-scores = meas.compute(session)          # {name: (raw, scalar)}
-scalars = meas.compute_scalars(session) # {name: scalar}
+if assessment.status is AssessmentStatus.FAILURE_TO_ASSESS:
+    print(assessment.failure)
+else:
+    for name, component in assessment.components.items():
+        print(name, component.status, component.raw, component.scalar)
 ```
+
+The same `Assessor` can process multiple images. Its internal lock makes calls safe when an
+application shares one instance across threads; calls are serialized because the model
+objects themselves are mutable.
+
+## Compatibility mapping
+
+```python
+import os
+from pathlib import Path
+
+from ofiqpy import assess
+
+data_root = Path(os.environ["OFIQPY_OFIQ_DATA"])
+scores = assess(data_root / "tests" / "images" / "r-01-frontal.png")
+raw, scalar = scores["UnifiedQualityScore"]
+print(raw, scalar)
+```
+
+The mapping adapter returns an empty dictionary only for a valid image in which no face is
+detected. It raises for unreadable paths, invalid arrays, and preprocessing errors. Use the
+typed API when the failure reason or partial component results must be retained as data.
 
 ## Command line
 
 ```bash
-# single image or directory -> OFIQ-format CSV
-ofiqpy -i face.jpg -o out.csv
-ofiqpy -i /path/to/images/ -o out.csv
+ofiqpy \
+  -i "$OFIQPY_OFIQ_DATA/tests/images/r-01-frontal.png" \
+  -o assessment.csv
 
-# parallel batch over a large directory (resumable)
-python -m ofiqpy.batch -i /path/to/images/ -o out.csv -w 8 --resume
+python -m ofiqpy.batch \
+  -i "$OFIQPY_OFIQ_DATA/tests/images" \
+  -o assessments.csv \
+  --resume
 ```
-
-The CSV mirrors `OFIQSampleApp`: semicolon-delimited, named columns, raw value + `.scalar`
-per component, plus `assessment_time_in_ms`. See [CLI & Batch](cli.md).

@@ -1,4 +1,4 @@
-ofiqpy — a faithful Python port of OFIQ v1.1.0
+ofiqpy — Python implementation of the canonical OFIQ v1.1.0 profile
 ==============================================
 
 ofiqpy reproduces the algorithms of OFIQ (Open Source Face Image Quality), the
@@ -18,10 +18,13 @@ redistributed with ofiqpy.
 
 To run ofiqpy, obtain the models from an OFIQ install and set:
 
-    export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data
+    export OFIQPY_OFIQ_ROOT="$(cd ../OFIQ-Project && pwd)"
+    export OFIQPY_OFIQ_DATA="$OFIQPY_OFIQ_ROOT/data"
 
 Conformance
 -----------
-ofiqpy targets agreement with the OFIQ reference to within +/- 1 quality point
-per component (the ISO/IEC 29794-5 Annex A criterion). See the docs for the
-validated conformance figures.
+ofiqpy's release gate compares the canonical profile with live OFIQ using exact
+scalar/status cardinality and a named component-specific raw-value policy. The
+report binds and stability-checks the source, inputs, models, native runtime, and
+optional distribution artifact. See the documentation for the reviewed figures
+and explicit scope limits.

@@ -1,29 +1,50 @@
-# API Reference
+# API reference
 
-## Top level
+## Public lifecycle
+
+::: ofiqpy.assessor.Assessor
+
+::: ofiqpy.assess_typed
 
 ::: ofiqpy.assess
 
-## Pipeline
+## Typed results
+
+::: ofiqpy.results.AssessmentResult
+
+::: ofiqpy.results.ComponentResult
+
+::: ofiqpy.results.AssessmentStatus
+
+::: ofiqpy.results.ComponentStatus
+
+::: ofiqpy.results.FailureCode
+
+## Verified profile and configuration
+
+::: ofiqpy.profile.CanonicalProfile
+
+::: ofiqpy.config.OFIQConfig
+
+## Advanced pipeline access
+
+`OFIQPipeline` and `Measures` expose internal preprocessing and execution stages. They do
+not provide `Assessor`'s lock, array validation, or typed image-level failure boundary.
 
 ::: ofiqpy.pipeline.OFIQPipeline
 
 ::: ofiqpy.session.Session
 
-## Measures
-
 ::: ofiqpy.measures.core.Measures
 
-## Configuration
-
-::: ofiqpy.config.OFIQConfig
-
-## Output
+## Output and batch
 
 ::: ofiqpy.output.header
 
 ::: ofiqpy.output.row
 
-## Batch
-
 ::: ofiqpy.batch.run_batch
+
+## Conformance
+
+::: ofiqpy.conformance.run_conformance

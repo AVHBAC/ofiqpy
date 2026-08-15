@@ -14,9 +14,16 @@ dist/
 .venv/
 venv/
 env/
+wheel-venv/
+
+# CI reference checkout and bound reports
+_reference/
+conformance-report.json
+wheel-assessment.csv
 
 # Native diagnostic bridges (rebuild with native/build.sh; large + platform-specific)
 native/*.so
+native/ofiq_preprocessing
 
 # Docs build
 site/

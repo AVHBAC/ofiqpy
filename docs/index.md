@@ -1,47 +1,47 @@
 # ofiqpy
 
-**A faithful Python port of [OFIQ](https://github.com/BSI-OFIQ/OFIQ-Project) v1.1.0** — the
-ISO/IEC 29794-5 face image quality reference implementation from the German Federal Office
-for Information Security (BSI).
+`ofiqpy` implements the fixed BSI OFIQ v1.1.0 profile in Python. The profile contains
+28 outputs: 27 ISO/IEC 29794-5 quality components and `UnifiedQualityScore`.
 
-Unlike an ISO-*inspired* reimplementation, ofiqpy **reuses OFIQ's own model files and
-reproduces its exact `.cpp` algorithms**, targeting per-component agreement with the OFIQ
-reference to within **±1 quality point** — the ISO/IEC 29794-5 Annex A conformance criterion.
+## Supported contract
 
-## Conformance at a glance
+- OFIQ `v1.1.0` at commit `bb5dc91d00477e02ce53d2530d28e35021484393`.
+- One canonical configuration and twelve hash-verified model artifacts.
+- The complete 28-component output set.
+- Typed image and component success/`FailureToAssess` results.
+- Canonical semicolon CSV output with stable full-path identities.
 
-Validated on **1,000+ real CelebA images** against a live `OFIQSampleApp` v1.1.0 run:
+This release does not implement arbitrary JAXN measure selection or parameter overrides,
+nor does it reproduce the full C++ API surface.
 
-- **27 of 28 components fully conformant** (±1 on every image); most are **bit-exact** (Δ=0).
-- The handful of per-image residuals are numerical boundaries of discrete/learned models
-  (the RTrees vote count, an AdaBoost score, a sigmoid round) — not algorithm gaps.
-- **~99.99% of all component-image pairs within ISO ±1.**
+## Current evidence
 
-See [Conformance](conformance.md) for the full methodology and per-component figures.
+The reproducible gate uses all 28 real BSI conformance images and observes every one of the
+784 image/component pairs. At the reviewed source state, all 784 scalar values and all 784
+statuses matched live `OFIQSampleApp` exactly. At six-decimal CSV precision, 702 raw values
+were exact and all 784 met the named, component-specific raw policy. See
+[Conformance](conformance.md) for the artifact hashes and verdict policy, and
+[Architecture review and ATG execution](review.md) for the full C++ crosswalk and
+remediation graph.
 
-## What it computes
+The [runtime performance review](performance.md) uses real BSI and CelebA inputs and
+confirms one worker as the measured default on the reviewed host; its aggregate evidence
+contains no licensed images or per-image identities.
 
-All 27 ISO/IEC 29794-5 quality components plus the unified quality score:
-
-- **Capture / pixel**: background & illumination uniformity, luminance mean/variance,
-  under/over-exposure, dynamic range, sharpness, compression artifacts, natural colour.
-- **Subject / geometry**: single-face, eyes open/visible, mouth closed/occluded, face
-  occlusion, no head coverings, expression neutrality, inter-eye distance, head size,
-  crop margins (leftward/rightward/above/below), head pose (yaw/pitch/roll).
-- **Unified**: MagFace-based unified quality score.
-
-## Design
-
-- **Same weights** — models are loaded directly from an OFIQ install (see
-  [Installation](installation.md)); nothing is re-trained.
-- **Same math** — detection, ADNet landmarks, 5-point similarity alignment, the
-  landmarked-region mask, and every measure are ported line-faithfully from OFIQ's C++.
-- **Same versions** — pinned to OpenCV 4.5.5 + onnxruntime 1.18.1 (OFIQ's toolchain) for
-  bit-faithful model inference.
-- **Gated, not asserted** — a harness runs live OFIQ and checks `|port − OFIQ| ≤ 1` per image.
+A non-redistributed 1,197-image CelebA diagnostic is also aggregate-bound in the review.
+It is broader compatibility evidence, not a substitute for the strict BSI release gate or
+independent validation of the raw tolerance policy.
 
 ```python
-from ofiqpy import assess
-scores = assess("face.jpg")          # {component: (raw, scalar)}
-print(scores["UnifiedQualityScore"]) # (raw_magnitude, 0-100 scalar)
+import os
+from pathlib import Path
+
+from ofiqpy import Assessor
+from ofiqpy.config import OFIQConfig
+
+data_root = Path(os.environ["OFIQPY_OFIQ_DATA"])
+result = Assessor(OFIQConfig(data_root=data_root)).assess(
+    data_root / "tests" / "images" / "r-01-frontal.png"
+)
+print(result.components["UnifiedQualityScore"])
 ```

@@ -1,4 +1,4 @@
-name: CI & Release
+name: CI and release
 
 on:
   push:
@@ -6,72 +6,185 @@ on:
     tags: ["v*"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-      - name: Ruff lint
-        run: ruff check ofiqpy tests
-      - name: Ruff format check
-        run: ruff format --check ofiqpy tests
-      - name: Type check (mypy)
-        run: mypy
-
-  test:
-    runs-on: ubuntu-latest
+  static:
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ["3.9", "3.11", "3.12"]
+        python-version: ["3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-      - name: Unit tests (pure functions, no models)
-        run: pytest tests/test_smoke.py -q
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.9.26"
+      - name: Install locked static and documentation dependencies
+        run: uv sync --locked --extra dev --extra docs --extra notebooks
+      - name: Lint
+        run: uv run --locked ruff check .
+      - name: Format check
+        run: uv run --locked ruff format --check ofiqpy tests examples notebooks
+      - name: Type check
+        run: uv run --locked mypy
+      - name: Documentation build
+        run: uv run --locked mkdocs build --strict
 
-  build:
-    needs: [lint, test]
-    runs-on: ubuntu-latest
+  real-gate:
+    needs: static
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    env:
+      OFIQPY_OFIQ_ROOT: ${{ github.workspace }}/_reference/OFIQ-Project
+      OFIQPY_OFIQ_DATA: ${{ github.workspace }}/_reference/OFIQ-Project/data
+      LD_LIBRARY_PATH: ${{ github.workspace }}/_reference/OFIQ-Project/install_x86_64_linux/Release/lib
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout the reviewed OFIQ source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: BSI-OFIQ/OFIQ-Project
+          ref: bb5dc91d00477e02ce53d2530d28e35021484393
+          path: _reference/OFIQ-Project
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.9.26"
+      - name: Install locked Python and native-build dependencies
+        run: uv sync --locked --extra ci --extra dev --extra notebooks
+      - name: Record native toolchain
+        run: |
+          uv run --locked cmake --version
+          uv run --locked conan --version
+          cc --version
+      - name: Build live OFIQ and download its real profile artifacts
+        working-directory: _reference/OFIQ-Project/scripts
+        run: uv run --locked --project "$GITHUB_WORKSPACE" sh build.sh
+      - name: Run official OFIQ conformance suite
+        working-directory: _reference/OFIQ-Project/scripts
+        run: sh conformance_tests.sh
+      - name: Run all real-data ofiqpy contracts
+        run: uv run --locked pytest -q
+      - name: Execute real-data notebooks
+        run: |
+          mkdir -p "$RUNNER_TEMP/ofiqpy-notebooks"
+          uv run --locked python -m jupyter nbconvert \
+            --to notebook \
+            --execute notebooks/*.ipynb \
+            --output-dir "$RUNNER_TEMP/ofiqpy-notebooks" \
+            --ExecutePreprocessor.timeout=600
+      - name: Build wheel and source distribution
+        if: matrix.python-version == '3.11'
+        run: uv run --locked python -m build --no-isolation
+      - name: Fresh-install wheel from locked runtime dependencies
+        if: matrix.python-version == '3.11'
+        run: |
+          uv export --locked --no-dev --no-emit-project \
+            --format requirements.txt \
+            --output-file "$RUNNER_TEMP/ofiqpy-runtime.txt"
+          uv venv wheel-venv --python "${{ matrix.python-version }}"
+          uv pip sync \
+            --python wheel-venv/bin/python \
+            --require-hashes \
+            "$RUNNER_TEMP/ofiqpy-runtime.txt"
+          uv pip install --python wheel-venv/bin/python --no-deps dist/*.whl
+      - name: Verify release tag matches package version
+        if: matrix.python-version == '3.11' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          package_version="$(wheel-venv/bin/python -c 'import importlib.metadata; print(importlib.metadata.version("ofiqpy"))')"
+          if [[ "$GITHUB_REF_NAME" != "v$package_version" ]]; then
+            echo "release tag $GITHUB_REF_NAME does not match package version $package_version" >&2
+            exit 1
+          fi
+      - name: Run installed wheel on a real BSI capture
+        if: matrix.python-version == '3.11'
+        run: |
+          cd "$RUNNER_TEMP"
+          "$GITHUB_WORKSPACE/wheel-venv/bin/ofiqpy" \
+            -i "$OFIQPY_OFIQ_DATA/tests/images/r-01-frontal.png" \
+            -o "$GITHUB_WORKSPACE/wheel-assessment.csv"
+      - name: Run installed-wheel strict gate and bind distribution hash
+        if: matrix.python-version == '3.11'
+        run: |
+          cd "$RUNNER_TEMP"
+          "$GITHUB_WORKSPACE/wheel-venv/bin/python" -m ofiqpy.conformance \
+            --ofiq-root "$OFIQPY_OFIQ_ROOT" \
+            --images "$OFIQPY_OFIQ_DATA/tests/images" \
+            --expected-count 28 \
+            --scalar-tolerance 0 \
+            --source-root "$GITHUB_WORKSPACE" \
+            --distribution "$GITHUB_WORKSPACE"/dist/*.whl \
+            --report "$GITHUB_WORKSPACE/conformance-report.json"
+      - name: Verify source checkout remains clean
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git status --short
+            exit 1
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: matrix.python-version == '3.11'
+        with:
+          name: verified-dist
+          path: |
+            dist/
+            conformance-report.json
+            wheel-assessment.csv
+
+  docs:
+    needs: real-gate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-22.04
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
-      - name: Build sdist + wheel
-        run: |
-          python -m pip install --upgrade pip build
-          python -m build
-      - uses: actions/upload-artifact@v4
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          name: dist
-          path: dist/
+          version: "0.9.26"
+      - name: Build documentation from the lock
+        run: |
+          uv sync --locked --extra docs
+          uv run --locked mkdocs build --strict
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
 
   publish:
-    # Publish to PyPI on a version tag via trusted publishing (OIDC).
-    needs: build
+    needs: real-gate
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     environment: pypi
     permissions:
-      id-token: write   # required for trusted publishing
+      id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: dist
-          path: dist/
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+          name: verified-dist
+          path: verified-dist
+      - name: Publish the verified distributions
+        uses: pypa/gh-action-pypi-publish@a892a5a61159132606e93a2fa6f4358831b04d26 # v1.14.2
+        with:
+          packages-dir: verified-dist/dist/

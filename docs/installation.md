@@ -1,20 +1,14 @@
 # Installation
 
-## Install the package
+## Package
+
+Python 3.11 or 3.12 is required by the reviewed release matrix.
 
 ```bash
-pip install ofiqpy
+python -m pip install ofiqpy
 ```
 
-or from source:
-
-```bash
-git clone https://github.com/AVHBAC/ofiqpy
-cd ofiqpy
-pip install -e .
-```
-
-Dependencies are pinned to OFIQ v1.1.0's toolchain for bit-faithful model inference:
+The runtime dependency versions are the versions used for the reviewed profile:
 
 | Package | Version |
 |---|---|
@@ -22,36 +16,38 @@ Dependencies are pinned to OFIQ v1.1.0's toolchain for bit-faithful model infere
 | opencv-python-headless | `==4.5.5.64` |
 | onnxruntime | `==1.18.1` |
 
-## Provide OFIQ's models
+The supported numerical profile uses CPU execution. Initializing the pipeline disables
+OpenCV's process-wide optimized kernels to match the reviewed OFIQ OpenCV 4.5.5 CPU path;
+see [Architecture](architecture.md) before sharing a process with another OpenCV workload.
 
-ofiqpy reproduces OFIQ's algorithms but **does not bundle OFIQ's model files** (they ship
-with OFIQ and may be licensed separately). Obtain them from an OFIQ install and point
-ofiqpy at the `data/` directory:
+## Exact OFIQ v1.1.0 data profile
 
-```bash
-git clone https://github.com/BSI-OFIQ/OFIQ-Project
-# download OFIQ's models per its instructions, then:
-export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data
-```
-
-The `data/` directory must contain `ofiq_config.jaxn` and the `models/` tree
-(`face_detection/`, `face_landmark_estimation/`, `head_pose_estimation/`, `face_parsing/`,
-`face_occlusion_segmentation/`, `sharpness/`, `no_compression_artifacts/`,
-`expression_neutrality/`, `unified_quality_score/`).
-
-## (Optional) The conformance gate
-
-To reproduce the ±1 conformance validation you also need a built `OFIQSampleApp` and pandas:
+Models are not bundled. Obtain the pinned OFIQ source and let its build retrieve the real
+model and test-image artifacts:
 
 ```bash
-pip install "ofiqpy[verify]"
-export OFIQPY_OFIQ_ROOT=/path/to/OFIQ-Project   # dir containing install_x86_64_linux/
-python tests/gate_slice.py 100
+git clone --branch v1.1.0 https://github.com/BSI-OFIQ/OFIQ-Project.git ../OFIQ-Project
+(
+  cd ../OFIQ-Project/scripts
+  sh build.sh
+)
+
+export OFIQPY_OFIQ_ROOT="$(cd ../OFIQ-Project && pwd)"
+export OFIQPY_OFIQ_DATA="$OFIQPY_OFIQ_ROOT/data"
 ```
 
-## Verify the install
+Initialization verifies the canonical config SHA-256 and twelve model SHA-256/size pairs.
+It fails closed for a newer OFIQ checkout, a locally edited JAXN file, a partial download,
+or substituted weights.
+
+## Runtime check on a real BSI image
 
 ```bash
 python -c "import ofiqpy; print(ofiqpy.__version__)"
-ofiqpy -i face.jpg -o out.csv
+ofiqpy \
+  -i "$OFIQPY_OFIQ_DATA/tests/images/r-01-frontal.png" \
+  -o assessment.csv
 ```
+
+To execute the strict reference comparison, follow [Conformance](conformance.md). No
+additional pandas dependency is required.

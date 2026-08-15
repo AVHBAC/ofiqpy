@@ -1,8 +1,8 @@
 # Components
 
-ofiqpy computes all 27 ISO/IEC 29794-5 quality components plus the unified quality score.
-Each is ported line-faithfully from the corresponding OFIQ measure; the CSV column names
-match `OFIQSampleApp`.
+The canonical profile computes all 27 ISO/IEC 29794-5 quality components exposed by OFIQ
+v1.1.0 plus the unified quality score. The fixed CSV names and order match that profile's
+`OFIQSampleApp` output.
 
 ## Capture / pixel measures
 
@@ -18,6 +18,10 @@ match `OFIQSampleApp`.
 | Sharpness | 7.3.8 | RTrees on 26 gradient features (original image) | sigmoid |
 | CompressionArtifacts | 7.3.9 | ssim-248 CNN on the aligned 248² crop | sigmoid |
 | NaturalColour | 7.3.10 | CIELAB a*/b* distance from the skin plateau | sigmoid |
+
+`NaturalColour` uses OFIQ v1.1.0's CIELAB coefficient `24289/27`; the earlier Python value
+`24389/27` was a source-level deviation even though it did not alter the 28 BSI scalar
+outputs.
 
 ## Subject / geometry measures
 
@@ -47,5 +51,6 @@ match `OFIQSampleApp`.
 |---|---|---|
 | UnifiedQualityScore | MagFace embedding magnitude | `sigmoid(x0=23, w=2.6)` |
 
-!!! note "GazeDirection (C28)"
-    OFIQ does not compute gaze; ofiqpy follows OFIQ and omits it from the standard output.
+!!! note "GazeDirection"
+    OFIQ v1.1.0 does not include gaze in this output profile, so it is not one of the 28
+    fields implemented here.

@@ -1,72 +1,93 @@
 # Architecture
 
-ofiqpy mirrors OFIQ's `OFIQImpl` preprocessing order: each stage's product is stored on a
-`Session` and reused by the measures.
+## Runtime lifecycle
 
-```
-image (BGR)
-  │
-  ├─ SSD face detector (cv2.dnn, Caffe) ─────────► bounding box, face areas
-  │
-  ├─ 3DDFA-V2 head pose (ONNX) ──────────────────► yaw, pitch, roll
-  │
-  ├─ ADNet-98 landmarks (ONNX) ──────────────────► 98 landmarks (original px)
-  │        │
-  │        └─ 5-point similarity alignment (LMEDS) ► aligned face 616×616,
-  │                                                  aligned landmarks, affine M
-  │
-  ├─ BiSeNet face parsing (ONNX, on aligned) ────► 400×400 class map
-  ├─ face-occlusion segmentation (ONNX, aligned) ► 616×616 occlusion mask
-  └─ landmarked-region mask (GetFaceMask α=0) ───► 616×616 face-region mask
-                                                   │
-                                                   ▼
-                                     28 measures ► {name: (raw, scalar)}
+```text
+canonical data root
+  -> hash config + 12 model artifacts
+  -> load detector, landmark, pose, parsing, occlusion, and measure models
+  -> Assessor (one re-entrant lock around mutable inference sessions)
+       -> read and validate BGR uint8 image
+       -> preprocessing Session
+       -> 28 isolated component results
+       -> typed AssessmentResult
+            -> Python typed API
+            -> legacy mapping adapter
+            -> canonical CSV adapter
 ```
 
-## Backbone models (all OFIQ's own weights)
+`Assessor` is the public lifecycle boundary. Construction fails before assessment output is
+created if the config/model profile is missing or does not hash to the reviewed OFIQ v1.1.0
+artifacts. Model sessions are preloaded, so corrupt model serialization also fails at
+initialization rather than halfway through a batch.
 
-| Stage | Model | Engine |
+OpenCV DNN networks and several ONNX/`cv2.ml` objects are mutable during inference. One
+`Assessor` therefore serializes assessment with an `RLock`. Batch workers each own a
+separate `Assessor`; the default is one worker because a model graph consumes substantial
+memory. Multi-worker batches use a clean `spawn` context, never a fork of already-created
+ONNX/OpenCV threads.
+
+The default is also measured rather than precautionary alone. On the reviewed 64-image
+real-data workload, candidate throughput was 2.649 images/s with one worker, 2.391 with
+two, and 2.140 with four, while median process-tree RSS rose from 1.292 GiB to 2.450 and
+4.723 GiB. See [Runtime performance](performance.md) for the complete host, input,
+alternation, and idle-guard contract.
+
+Construction also disables OpenCV's process-wide optimized kernels with
+`cv2.setUseOptimized(False)`. The `opencv-python-headless` 4.5.5 wheel's optimized
+float-resize path differs numerically from OFIQ's reviewed Conan OpenCV 4.5.5 CPU build;
+the generic path produced matching reviewed tensors. This setting is idempotent but global:
+applications that share a process with other OpenCV workloads must account for the
+performance and last-bit effects. Separate worker processes contain that setting.
+
+## Preprocessing graph
+
+```text
+BGR uint8 image
+  -> SSD face detection
+  -> 3DDFA-V2 pose
+  -> ADNet-98 landmarks
+  -> five-point LMEDS alignment (616 x 616)
+  -> BiSeNet parsing (400 x 400)
+  -> face-occlusion segmentation (616 x 616)
+  -> landmarked face-region mask
+  -> component executor
+```
+
+Each product is stored once on `Session` and reused by dependent measures. The component
+executor catches exceptions at the same single/compound-measure granularity used by OFIQ:
+crop produces four results, head pose produces three, and the remaining measures produce
+one or two defined results. A failed group becomes typed `FailureToAssess`; other groups
+remain available.
+
+## C++ comparison
+
+| Concern | OFIQ C++ v1.1.0 | ofiqpy supported profile |
 |---|---|---|
-| Detection | `ssd_facedetect.caffemodel` (ResNet-SSD) | OpenCV DNN |
-| Landmarks | `ADNet.onnx` (98-point) | onnxruntime |
-| Pose | `mb1_120x120.onnx` (3DDFA-V2) | onnxruntime |
-| Face parsing | `bisenet_400.onnx` (BiSeNet) | onnxruntime |
-| Occlusion | `face_occlusion_segmentation_ort.onnx` | onnxruntime |
-| Sharpness | `face_sharpness_rtree.xml.gz` (random forest) | `cv2.ml.RTrees` |
-| Compression | `ssim_248_model.onnx` (CNN) | onnxruntime |
-| Expression | `enet_b0` + `enet_b2` (HSEmotion) + AdaBoost | onnxruntime + `cv2.ml.Boost` |
-| Unified | `magface_iresnet50_norm.onnx` (MagFace) | onnxruntime |
+| Configuration | Selectable measures and parameter overrides | Exact canonical config hash only |
+| Executor | Builds configured measure list | Fixed canonical 28 outputs |
+| Result status | `QualityMeasureReturnCode` per component | Typed component status plus image status |
+| Measure failure | Isolated in `Executor` | Isolated per single/compound group |
+| Preprocessing failure | All configured measures FTA | All 28 components FTA |
+| Thread safety | Internal synchronization around mutable runtime | `Assessor`-level `RLock` |
+| CSV identity | Supplied image path | Supplied/discovered image path |
+| CSV columns | Active configured map | Fixed canonical 28-component map |
 
-## Faithfulness details
+This is algorithm/profile parity, not full API/config parity. Passing a modified JAXN file
+is rejected even if it would be accepted by OFIQ C++.
 
-Reproducing OFIQ to ±1 depends on several exact behaviors, each verified against the C++:
+## Package map
 
-- **Alignment**: 5 source points (eye centers of ADNet corners 60/64 & 68/72, nose 54,
-  mouth 76/82) → fixed reference points, `estimateAffinePartial2D(..., LMEDS)`, `warpAffine`
-  to 616×616.
-- **ADNet back-projection**: landmarks scaled back by `squareBox.height / 256` (the
-  `floor`/`ceil` squaring can leave the box 1px non-square — the *height* is authoritative).
-- **HeadPose slot swap**: OFIQ's `HeadPoseYaw` output reports the geometric *pitch* and
-  vice-versa (`HeadPose.cpp`); ofiqpy reproduces the swap.
-- **Sigmoid**: `quality = h·(a + s·sigmoid(x; x0, w))`, C-style round (half away from zero),
-  clamp `[0, 100]`. Several measures use non-sigmoid maps (LuminanceVariance = sin,
-  OverExposure = `1/(v+0.01)`, DynamicRange = `12.5·entropy`).
-- **Colour order per model** differs (pose/UQS = BGR; parsing/occlusion/compression = RGB).
-
-## Package layout
-
-```
+```text
 ofiqpy/
-  config.py          JAXN config loader + OFIQ model resolver (env-driven)
-  session.py         shared preprocessing products
-  pipeline.py        the OFIQImpl-order orchestrator
-  sigmoid.py         OFIQ ScalarConversion
-  detectors/ssd.py   SSD detector (OpenCV DNN)
-  landmarks/adnet.py ADNet-98 + square-crop helpers
-  align.py           alignment, landmarked region, tmetric, luminance
-  pose/tddfa.py      3DDFA-V2 pose
-  segmentation/      BiSeNet parsing, occlusion segmentation
-  measures/          core (dispatch + model cache), geometry, pixel, models, helpers
-  output.py          OFIQ-format CSV
-  cli.py, batch.py   single + parallel runners
+  profile.py       canonical artifact manifest and integrity verification
+  config.py        JAXN reader and verified model resolver
+  assessor.py      preflight, locking, input validation, typed lifecycle
+  results.py       component/image statuses and result types
+  pipeline.py      OFIQ preprocessing graph
+  session.py       shared preprocessing products
+  measures/        canonical component executor and algorithms
+  output.py        canonical semicolon CSV encoding
+  batch.py         recursive/resumable execution
+  conformance.py   live reference runner and strict comparison report
 ```
