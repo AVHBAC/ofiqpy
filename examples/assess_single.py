@@ -1,23 +1,28 @@
-"""Assess a single image and print all component scores.
+"""Assess one real image and print typed component results.
 
-Usage:
-    export OFIQPY_OFIQ_DATA=/path/to/OFIQ-Project/data
-    python examples/assess_single.py face.jpg
+Run after setting OFIQPY_OFIQ_DATA:
+    python examples/assess_single.py "$OFIQPY_OFIQ_DATA/tests/images/r-01-frontal.png"
 """
-import sys
 
-from ofiqpy import assess
+from __future__ import annotations
+
+import argparse
+
+from ofiqpy import Assessor
 
 
-def main(path):
-    scores = assess(path)
-    if not scores:
-        print("no face detected")
-        return
-    print(f"{'component':30} {'raw':>12} {'scalar':>7}")
-    for name, (raw, scalar) in sorted(scores.items()):
-        print(f"{name:30} {raw:12.4f} {scalar:7.0f}")
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("image")
+    args = parser.parse_args()
+    result = Assessor().assess(args.image)
+    print(result.status.value)
+    if result.failure is not None:
+        print(result.failure.code.value, result.failure.message)
+    for name, component in result.components.items():
+        print(f"{name:30} {component.status.value:18} {component.raw:12.6f} {component.scalar:3.0f}")
+    return 0 if result.failure is None else 1
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "face.jpg")
+    raise SystemExit(main())
