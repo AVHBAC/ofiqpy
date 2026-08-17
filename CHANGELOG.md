@@ -24,8 +24,9 @@ All notable changes to ofiqpy are documented here. The format follows
 - Raised the declared and CI-tested Python support floor from 3.9 to 3.11; the static
   and complete live matrices now cover Python 3.11 and 3.12.
 - Restricted release evidence to reproducibly bound runs. The current 28-image BSI gate is
-  784/784 scalar exact and 784/784 status exact; raw values are 702/784 exact at six-decimal
-  CSV precision and 784/784 within the named component policy.
+  784/784 scalar exact and 784/784 status exact; 698 to 702 raw values were exact at
+  six-decimal CSV precision across the verified Linux environments, and 784/784 were within
+  the named component policy.
 - Standardized every internal measure producer on one immutable named raw/scalar contract
   and made public assessment mappings immutable with finite/range validation.
 - Made batch execution re-entrant in the parent process, monotonic-timed, streaming, and

@@ -36,12 +36,14 @@ still applies to that observation.
 | Scalar exact | 784 / 784 |
 | Scalar within tolerance 0 | 784 / 784 |
 | Status exact | 784 / 784 |
-| Raw exact at six decimals | 702 / 784 |
+| Raw exact at six decimals | 698 to 702 / 784 across verified Linux runs |
 | Raw within component policy | 784 / 784 |
 | Undefined raw values excluded | 0 / 784 |
 
 The official C++ conformance executable independently passed 787 / 787 tests in the same
-review environment.
+review environment. The raw exact count was 698 on the GitHub Python 3.11.15 runner and 702
+on the local Python 3.11.14 host. It is an environment-sensitive diagnostic; the declared
+component policy, which accepted all 784 observations, determines the raw-value verdict.
 
 ## Bound artifacts
 

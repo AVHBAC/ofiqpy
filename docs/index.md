@@ -18,8 +18,9 @@ nor does it reproduce the full C++ API surface.
 
 The reproducible gate uses all 28 real BSI conformance images and observes every one of the
 784 image/component pairs. At the 0.2.0 source state, all 784 scalar values and all 784
-statuses matched live `OFIQSampleApp` exactly. At six-decimal CSV precision, 702 raw values
-were exact and all 784 met the named, component-specific raw policy. See
+statuses matched live `OFIQSampleApp` exactly. At six-decimal CSV precision, 698 to 702 raw
+values were exact across the verified Linux environments, and all 784 met the named,
+component-specific raw policy. See
 [Conformance](conformance.md) for the artifact hashes and verdict policy, and
 [Architecture review](review.md) for the full C++ crosswalk and implementation record.
 

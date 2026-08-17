@@ -31,10 +31,11 @@ Version 0.2.0 uses a smaller contract that can be checked directly:
 - cardinality-enforcing live-C++ conformance;
 - installed-wheel, real-image, notebook, and release gates.
 
-The 28 real BSI images produced 784/784 exact scalars and 784/784 exact statuses. Raw
-values were exact for 702/784 observations at the C++ CSV's six-decimal precision, and all
-784 met the immutable component-specific raw policy. Raw comparison is part of the verdict;
-undefined raw values are excluded only for matched `FailureToAssess` observations.
+The 28 real BSI images produced 784/784 exact scalars and 784/784 exact statuses. At the C++
+CSV's six-decimal precision, 698 to 702 raw values were exact across the verified Linux
+environments, and all 784 met the immutable component-specific raw policy. Raw comparison
+is part of the verdict; undefined raw values are excluded only for matched
+`FailureToAssess` observations.
 
 ## Implementation and verification record
 

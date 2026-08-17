@@ -29,7 +29,7 @@ At the 0.2.0 source state on 2026-08-16:
 | Scalar values exactly equal | 784 / 784 |
 | Scalar values within tolerance 0 | 784 / 784 |
 | Success/FailureToAssess status equal | 784 / 784 |
-| Raw values equal at six-decimal CSV precision | 702 / 784 |
+| Raw values equal at six-decimal CSV precision | 698 to 702 / 784 across verified Linux runs |
 | Raw values within the named component policy | 784 / 784 |
 
 Raw values determine the verdict under the immutable
@@ -37,8 +37,10 @@ Raw values determine the verdict under the immutable
 values emitted by `OFIQSampleApp`; ten deterministic components require equality and each
 remaining component has a unit-specific bound and rationale. Raw values are excluded only
 when either implementation reports `FailureToAssess`, where OFIQ does not define a raw
-result. The earlier unbound 1,197-image and universal bit-exactness claims are not used as
-release evidence.
+result. The diagnostic exact count was 698 on the GitHub Python 3.11.15 runner and 702 on
+the local Python 3.11.14 verification host. This environment-sensitive count is reported,
+but it does not determine conformance. The earlier unbound 1,197-image and universal
+bit-exactness claims are not used as release evidence.
 
 A separate, non-redistributed diagnostic reran the recovered 1,197-image CelebA selection
 with aggregate provenance. All 33,516 statuses matched; 33,483 scalars were exact and all
