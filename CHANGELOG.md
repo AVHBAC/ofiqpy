@@ -3,7 +3,7 @@
 All notable changes to ofiqpy are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
-## [0.2.0] — 2026-08-14
+## [0.2.0] — 2026-08-16
 
 ### Changed
 
