@@ -1,6 +1,6 @@
-# Architecture review and ATG execution
+# Architecture review
 
-## Review boundary
+## Review scope
 
 This review compares:
 
@@ -8,11 +8,12 @@ This review compares:
 - BSI OFIQ v1.1.0 at `bb5dc91d00477e02ce53d2530d28e35021484393`.
 - The exact canonical config and twelve-model profile verified by `ofiqpy.profile`.
 
-The supported target is the canonical OFIQ v1.1.0 profile, not arbitrary JAXN
-configuration or the full C++ library API. All implementation work was isolated from the
-original dirty Python and C++ worktrees.
+The supported target is the canonical OFIQ v1.1.0 profile. Arbitrary JAXN configuration
+and the full C++ library API remain outside this package's scope. Implementation and
+verification ran in an isolated worktree, leaving the original Python and C++ worktrees
+untouched.
 
-## Executive verdict
+## Review result
 
 At the baseline commit, `ofiqpy` was a close translation of the default successful-image
 algorithms, but it was not faithful across configuration, lifecycle, errors, result status,
@@ -20,10 +21,10 @@ CSV identity, batch resume, or release verification. Its committed comparison pr
 could skip observations and never failed the process, so historical large-corpus claims
 were not reproducibly established by the repository.
 
-The reviewed architecture now defines a narrower and enforceable contract:
+Version 0.2.0 uses a smaller contract that can be checked directly:
 
-- one hash-verified OFIQ v1.1.0 config/model profile;
-- one preflighted, locked `Assessor` lifecycle;
+- a hash-verified OFIQ v1.1.0 config/model profile;
+- a preflighted, locked `Assessor` lifecycle;
 - typed image and per-component results;
 - fixed canonical 28-component output;
 - exact full-path CSV identity and strict resume validation;
@@ -35,59 +36,49 @@ values were exact for 702/784 observations at the C++ CSV's six-decimal precisio
 784 met the immutable component-specific raw policy. Raw comparison is part of the verdict;
 undefined raw values are excluded only for matched `FailureToAssess` observations.
 
-## Atomic Task Graph
+## Implementation and verification record
 
-The execution graph was:
+The work followed this dependency order:
 
 ```text
-N1 isolated worktree
-  -> {N2 baseline, N3 artifact bindings}
-  -> N4 canonical-profile decision
-  -> L1 release-contract red/green loop
-  -> N5 typed runtime and component failure isolation
-  -> L2 runtime red/green loop
-  -> N6 CSV, input, resume, and worker lifecycle
-  -> L3 I/O red/green loop
-  -> N7 strict live conformance and provenance
-  -> L4 conformance red/green loop
-  -> {N8 real-data tests, N9 documentation/release governance}
-  -> N10 static gate
-  -> N11 complete source gate
-  -> N12 wheel/fresh-install gate
-  -> N13 hostile diff review
-  -> L5 bounded adversarial repair loop
-  -> N14 terminal full gate and evidence ledger
-  -> N15 uncontended-host verification
-  -> N16 real-input/runtime/source binding
-  -> {N17 baseline single, N18 candidate single}
-  -> N19 batch workers 1/2/4
-  -> N20 aggregate evidence and documentation
+isolated worktree
+  -> baseline and artifact bindings
+  -> canonical-profile scope
+  -> typed runtime and component failure isolation
+  -> CSV, input, resume, and worker lifecycle
+  -> strict live conformance and provenance
+  -> real-data tests and release documentation
+  -> lint, types, docs, and complete source tests
+  -> fresh wheel installation and real-image test
+  -> independent diff review and repairs
+  -> uncontended-host benchmark and aggregate evidence
+  -> final release gate
 ```
 
-| Node | Atomic outcome | Confirming evidence |
+| Area | Result | Confirming evidence |
 |---|---|---|
-| N1 | Detached sibling worktree; source repositories untouched | Git worktree/status inspection |
-| N2 | C++ `787/787`; Python `784/784` scalar/status exact; raw `696/784`; mypy `0`; ruff baseline `23` | Live official suite and 28-image comparison |
-| N3 | Binary, shared libraries, config, models, inputs, source, and distribution bound by SHA-256 | `ofiqpy.conformance` report |
-| N4 | Canonical v1.1.0 scope; `NaturalColour` coefficient `24289/27`; one version source | Profile/release contracts |
-| N5 | Preflighted `Assessor`, lock, typed statuses, isolated component failures | Real BSI assessment contracts |
-| N6 | Quoted full paths, canonical header, row-width/duplicate resume checks, one-worker default, spawn for explicit multiprocessing | Real CSV and two-process BSI contracts |
-| N7 | Exact row/identity/component cardinality, finite-value checks, status/scalar/raw-policy verdict, nonzero failure | Live conformance contract |
-| N8 | Fabricated smoke inputs removed; real BSI captures and real derived subsamples used | Complete pytest suite |
-| N9 | Claims narrowed; CI builds C++, executes real data/notebooks, tests wheel, checks release tag | Public documentation and workflow contracts |
-| N10 | Repo-wide lint/format/types/docs/YAML/marker gates | Static command exit codes |
-| N11 | Every source test executed, including live C++ | Complete pytest exit code |
-| N12 | Wheel inspected, installed in a fresh environment, and used on live BSI input | Installed-wheel conformance report |
-| N13/L5 | Three bounded hostile reviews; runtime, resume, spawn, CLI, finite-value, notebook, native, release, source-cleanliness, and matrix findings repaired | Adversarial findings plus red/green contracts |
-| N14 | Terminal evidence is emitted by the final run rather than embedded here, avoiding a self-referential source/distribution hash | Release handoff and generated JSON report |
-| N15/N16 | Competing governed paper work completed before measurement; baseline, candidate, runtime, and real inputs bound | Process guard plus source/input aggregates |
-| N17/N18 | Three alternating measured single-process repetitions after one warm-up | Identical scalar digests; latency/RSS medians |
-| N19 | Three measured batch repetitions per variant at workers 1, 2, and 4 | Exact 64-row cardinality and process-tree RSS/throughput |
-| N20 | Redistribution-safe aggregate evidence and measured worker-default documentation | `docs/evidence/runtime-benchmark-20260815.json` |
+| Work isolation | Sibling worktree used; source repositories left untouched | Git worktree and status inspection |
+| Baseline | C++ `787/787`; Python `784/784` scalar/status exact; raw `696/784`; mypy `0`; ruff baseline `23` | Live official suite and 28-image comparison |
+| Artifact binding | Binary, shared libraries, config, models, inputs, source, and distribution bound by SHA-256 | `ofiqpy.conformance` report |
+| Scope | Canonical v1.1.0 profile; `NaturalColour` coefficient `24289/27`; one version source | Profile and release contracts |
+| Runtime | Preflighted `Assessor`, lock, typed statuses, and isolated component failures | Real BSI assessment contracts |
+| Input and output | Quoted full paths, canonical header, resume validation, one-worker default, and `spawn` for explicit multiprocessing | Real CSV and two-process BSI contracts |
+| Conformance | Exact cardinality and finite-value checks, status/scalar/raw-policy verdict, and nonzero failure | Live conformance contract |
+| Test data | Invented smoke values removed; real BSI captures and real derived subsamples used | Complete pytest suite |
+| Release workflow | CI builds C++, runs real data and notebooks, tests the wheel, and checks the release tag | Public documentation and workflow contracts |
+| Static checks | Repository-wide lint, format, types, docs, YAML, and marker checks | Command exit codes |
+| Source checks | Every source test executed, including live C++ | Complete pytest exit code |
+| Package checks | Wheel inspected, installed in a fresh environment, and used on a live BSI input | Installed-wheel conformance report |
+| Independent review | Three diff reviews drove repairs to runtime, resume, spawn, CLI, finite-value, notebook, native, release, source-cleanliness, and matrix behavior | Review findings and regression tests |
+| Final evidence | Generated from the release tree and emitted as JSON, avoiding a self-referential source/distribution hash | Release handoff and generated report |
+| Benchmark controls | Host-load guard passed; source, runtime, and real inputs were bound | Process guard and source/input aggregates |
+| Single-process benchmark | Three alternating measured repetitions per version after one warm-up | Identical scalar digests and latency/RSS medians |
+| Batch benchmark | Three measured repetitions per version at workers 1, 2, and 4 | Exact 64-row cardinality and process-tree RSS/throughput |
+| Published benchmark evidence | Aggregate-only record with no licensed image identities | `docs/evidence/runtime-benchmark-20260815.json` |
 
 ## Runtime architecture comparison
 
-| Concern | OFIQ C++ v1.1.0 | Baseline Python | Reviewed Python contract |
+| Concern | OFIQ C++ v1.1.0 | Baseline Python | ofiqpy 0.2.0 |
 |---|---|---|---|
 | Initialization | Explicit library initialization | Implicit lazy globals | Explicit `Assessor`; lazy adapter retained |
 | Configuration | Selectable measures and parameter overrides | Parsed config but fixed hard-coded executor | Exact canonical config hash; other config rejected |
@@ -106,11 +97,11 @@ N1 isolated worktree
 
 ## Preprocessing crosswalk
 
-| Stage | Python implementation | C++ reference behavior | Reviewed status |
+| Stage | Python implementation | C++ reference behavior | 0.2.0 status |
 |---|---|---|---|
 | SSD face detection | `detectors/ssd.py` | Caffe SSD, BGR mean, canonical thresholds/padding, largest-area ordering | Equivalent for pinned profile |
-| 3DDFA pose | `pose/tddfa.py` | Canonical crop, float32 normalization, 62-parameter output, Euler conversion | Float32 path matches the reviewed CPU profile |
-| ADNet landmarks | `landmarks/adnet.py` | Square/pad, single-rounded `[-1,1]`, height-based float32 back-projection | Matches the reviewed C++ conversion path |
+| 3DDFA pose | `pose/tddfa.py` | Canonical crop, float32 normalization, 62-parameter output, Euler conversion | Float32 path matches the tested CPU profile |
+| ADNet landmarks | `landmarks/adnet.py` | Square/pad, single-rounded `[-1,1]`, height-based float32 back-projection | Matches the tested C++ conversion path |
 | Alignment | `align.py` | Five reference points, LMEDS partial affine, 616-square warp | Equivalent for pinned runtime |
 | Face parsing | `segmentation/parsing.py` | Canonical crop, RGB/ImageNet normalization, BiSeNet argmax | Equivalent for pinned model |
 | Occlusion | `segmentation/occlusion.py` | Canonical crop/scale/threshold/nearest resize/border | Equivalent for single-output pinned model |
@@ -120,7 +111,7 @@ N1 isolated worktree
 ## Complete component crosswalk
 
 Every row below had 28/28 exact BSI scalar values and 28/28 matching statuses in the
-reviewed environment.
+tested environment.
 
 | Output | Python owner | C++ measure | Important contract note |
 |---|---|---|---|
@@ -167,7 +158,7 @@ reviewed environment.
 | `NaturalColour` used `24389/27` rather than C++ `24289/27` | Corrected and source-gated |
 | NumPy's two-step ADNet normalization changed a boundary landmark and two Sharpness tree votes on a real CelebA image | Reproduced against a native preprocessing bridge; changed to the C++ single-rounding float32 path |
 | Pose constants and intermediates used float64 where OFIQ uses float32 | Changed to the C++ float32 evaluation path and real-image raw regression-gated |
-| NumPy scalar normalization and optimized wheel resize kernels diverged from OFIQ's OpenCV CPU path | Changed affected model preprocessing to OpenCV scalar operations and the reviewed generic CPU kernel path |
+| NumPy scalar normalization and optimized wheel resize kernels diverged from OFIQ's OpenCV CPU path | Changed affected model preprocessing to OpenCV scalar operations and the tested generic CPU kernel path |
 | Config/models/version/distribution were not cryptographically tied to evidence | Canonical manifest, one version source, and report bindings |
 | Decompressed OpenCV model files leaked | Temporary artifacts removed in `finally` |
 | Optional native diagnostic failed with undefined names when unbuilt | Defined availability error; real bridge still executes when present |
@@ -175,20 +166,20 @@ reviewed environment.
 
 ## Runtime performance review
 
-The final ATG extension compared the pinned 0.1.1 source with the reviewed 0.2.0 Python
+The performance check compared the pinned 0.1.1 source with the 0.2.0 Python
 source on all 28 real BSI conformance images and a fixed 64-image real CelebA subsample.
 One warm-up preceded three alternating measured repetitions per variant and scenario.
 Every case passed the source/input hash and output-cardinality contracts.
 
-Single-process scalar digests were identical. The candidate improved median warm
+Single-process scalar digests were identical. Version 0.2.0 improved median warm
 throughput from 2.004 to 2.060 images/s and reduced median peak process-tree RSS from
 1.467 to 1.211 GiB; cold first assessment increased from 2.601 to 2.693 seconds. In batch
-mode, candidate throughput was 2.649, 2.391, and 2.140 images/s at one, two, and four
-workers, while RSS was 1.292, 2.450, and 4.723 GiB. This confirms one worker as the safe
-measured default on the reviewed host. The full bounded interpretation is in
+mode, version 0.2.0 throughput was 2.649, 2.391, and 2.140 images/s at one, two, and four
+workers, while RSS was 1.292, 2.450, and 4.723 GiB. Those measurements support one worker
+as the default on the benchmark host. The full bounded interpretation is in
 [Runtime performance](performance.md).
 
-## Deliberate limitations
+## Scope limits
 
 - This is canonical-profile parity, not general JAXN or C++ API parity.
 - Raw conformance is bounded by the named CPU component policy; the bounds are not a claim
@@ -204,4 +195,4 @@ measured default on the reviewed host. The full bounded interpretation is in
   external validation of those bounds.
 - `native_cv` is an operator-built diagnostic surface, not part of canonical execution.
 
-These limits are public contract boundaries, not unfinished implementations.
+These limits define the public contract.

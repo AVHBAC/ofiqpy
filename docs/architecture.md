@@ -17,7 +17,7 @@ canonical data root
 ```
 
 `Assessor` is the public lifecycle boundary. Construction fails before assessment output is
-created if the config/model profile is missing or does not hash to the reviewed OFIQ v1.1.0
+created if the config/model profile is missing or does not hash to the verified OFIQ v1.1.0
 artifacts. Model sessions are preloaded, so corrupt model serialization also fails at
 initialization rather than halfway through a batch.
 
@@ -27,16 +27,16 @@ separate `Assessor`; the default is one worker because a model graph consumes su
 memory. Multi-worker batches use a clean `spawn` context, never a fork of already-created
 ONNX/OpenCV threads.
 
-The default is also measured rather than precautionary alone. On the reviewed 64-image
-real-data workload, candidate throughput was 2.649 images/s with one worker, 2.391 with
+Measurements support that default. On the tested 64-image real-data workload, version
+0.2.0 processed 2.649 images/s with one worker, 2.391 with
 two, and 2.140 with four, while median process-tree RSS rose from 1.292 GiB to 2.450 and
 4.723 GiB. See [Runtime performance](performance.md) for the complete host, input,
 alternation, and idle-guard contract.
 
 Construction also disables OpenCV's process-wide optimized kernels with
 `cv2.setUseOptimized(False)`. The `opencv-python-headless` 4.5.5 wheel's optimized
-float-resize path differs numerically from OFIQ's reviewed Conan OpenCV 4.5.5 CPU build;
-the generic path produced matching reviewed tensors. This setting is idempotent but global:
+float-resize path differs numerically from OFIQ's tested Conan OpenCV 4.5.5 CPU build;
+the generic path produced matching tensors. This setting is idempotent but global:
 applications that share a process with other OpenCV workloads must account for the
 performance and last-bit effects. Separate worker processes contain that setting.
 
@@ -62,7 +62,7 @@ remain available.
 
 ## C++ comparison
 
-| Concern | OFIQ C++ v1.1.0 | ofiqpy supported profile |
+| Concern | OFIQ C++ v1.1.0 | ofiqpy 0.2.0 |
 |---|---|---|
 | Configuration | Selectable measures and parameter overrides | Exact canonical config hash only |
 | Executor | Builds configured measure list | Fixed canonical 28 outputs |

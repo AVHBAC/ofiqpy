@@ -45,7 +45,7 @@ nav:
   - Quickstart: quickstart.md
   - Architecture: architecture.md
   - Runtime Performance: performance.md
-  - Architecture Review & ATG: review.md
+  - Architecture review: review.md
   - Components: components.md
   - Conformance: conformance.md
   - CLI & Batch: cli.md

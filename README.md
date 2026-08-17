@@ -4,7 +4,7 @@
 quality-assessment profile. It computes the 27 ISO/IEC 29794-5 components exposed by
 OFIQ v1.1.0 plus `UnifiedQualityScore` using OFIQ's model files.
 
-The supported contract is intentionally narrow:
+ofiqpy supports one exact contract:
 
 - OFIQ source tag `v1.1.0`, commit `bb5dc91d00477e02ce53d2530d28e35021484393`.
 - The canonical `ofiq_config.jaxn` with SHA-256
@@ -20,7 +20,7 @@ The strict gate runs the live C++ `OFIQSampleApp` and this package on all 28 rea
 conformance images. It rejects missing images, duplicate identities, missing components,
 non-numeric values, and status mismatches.
 
-At the reviewed source state on 2026-08-14:
+At the 0.2.0 source state on 2026-08-16:
 
 | Observation | Result |
 |---|---:|
@@ -63,7 +63,7 @@ export OFIQPY_OFIQ_DATA="$OFIQPY_OFIQ_ROOT/data"
 
 The OFIQ build downloads the separately licensed models and BSI test images. `ofiqpy`
 does not bundle or redistribute those files. Initialization stops with an integrity error
-if the downloaded configuration or any required model differs from the reviewed profile.
+if the downloaded configuration or any required model differs from the verified profile.
 
 ## Python API
 
@@ -128,7 +128,7 @@ worker owns a complete model graph; additional workers require an explicit `-w` 
 start with Python's clean `spawn` process context. An unreadable image or preprocessing
 failure exits nonzero rather than silently writing a whole-image sentinel row.
 
-On the reviewed 64-image real-data workload, the 0.2.0 candidate processed 2.649 images/s
+On the tested 64-image real-data workload, version 0.2.0 processed 2.649 images/s
 at one worker, 2.391 at two, and 2.140 at four; median process-tree RSS rose from 1.292 GiB
 to 2.450 and 4.723 GiB. One worker is therefore the measured default for that host, not a
 universal optimum. See [Runtime performance](docs/performance.md).

@@ -5,6 +5,7 @@ authors:
   - family-names: Storey
     given-names: Aaron
 version: 0.2.0
+date-released: 2026-08-16
 license: MIT
 repository-code: "https://github.com/AVHBAC/ofiqpy"
 url: "https://avhbac.github.io/ofiqpy/"

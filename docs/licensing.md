@@ -1,4 +1,4 @@
-# Licensing & Attribution
+# Licensing and attribution
 
 ## ofiqpy
 

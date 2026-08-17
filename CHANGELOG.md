@@ -3,7 +3,7 @@
 All notable changes to ofiqpy are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
-## [0.2.0] — 2026-08-16
+## [0.2.0] - 2026-08-16
 
 ### Changed
 
@@ -40,16 +40,16 @@ All notable changes to ofiqpy are documented here. The format follows
   hash-bearing `uv.lock`; release artifacts now use locked build/runtime dependencies.
 - Made conformance capture source, input, model, native, and optional distribution
   bindings before and after execution and reject any mid-run artifact change.
-- Recovered and aggregate-bound the current 1,197-image CelebA diagnostic without
-  redistributing licensed images or per-image records: 33,516/33,516 statuses matched,
-  33,483 scalars were exact and all were within one point, and all 33,430 defined raw
-  comparisons met the named policy. The original unhashed run remains historically
-  unproven, and this cohort is not independent validation of the raw bounds.
+- Reran the recovered 1,197-image CelebA diagnostic and recorded aggregate provenance
+  without redistributing licensed images or per-image records. The run matched
+  33,516/33,516 statuses; 33,483 scalars were exact and all were within one point; all
+  33,430 defined raw comparisons met the named policy. The original unhashed run remains
+  historically unproven, and this cohort is not independent validation of the raw bounds.
 - Added an aggregate-only runtime benchmark over real BSI and CelebA inputs. On the
   reviewed host, one worker was faster and materially smaller than two or four workers,
   confirming the bounded one-worker batch default.
 
-## [0.1.1] — 2026-07-17
+## [0.1.1] - 2026-07-17
 
 ### Added
 - Source distribution now ships the full project (CHANGELOG, CITATION, docs sources,
@@ -61,7 +61,7 @@ All notable changes to ofiqpy are documented here. The format follows
   favour of environment-driven data/reference roots.
 - Minor typing fixes (array dtypes, worker None-guards).
 
-## [0.1.0] — 2026-07-17
+## [0.1.0] - 2026-07-17
 
 Initial Python implementation of OFIQ v1.1.0 algorithms.
 

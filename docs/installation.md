@@ -2,13 +2,13 @@
 
 ## Package
 
-Python 3.11 or 3.12 is required by the reviewed release matrix.
+Python 3.11 or later is required. The complete release gate runs on Python 3.11 and 3.12.
 
 ```bash
 python -m pip install ofiqpy
 ```
 
-The runtime dependency versions are the versions used for the reviewed profile:
+The 0.2.0 numerical profile uses these runtime dependency versions:
 
 | Package | Version |
 |---|---|
@@ -17,7 +17,7 @@ The runtime dependency versions are the versions used for the reviewed profile:
 | onnxruntime | `==1.18.1` |
 
 The supported numerical profile uses CPU execution. Initializing the pipeline disables
-OpenCV's process-wide optimized kernels to match the reviewed OFIQ OpenCV 4.5.5 CPU path;
+OpenCV's process-wide optimized kernels to match the tested OFIQ OpenCV 4.5.5 CPU path;
 see [Architecture](architecture.md) before sharing a process with another OpenCV workload.
 
 ## Exact OFIQ v1.1.0 data profile

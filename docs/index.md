@@ -17,15 +17,14 @@ nor does it reproduce the full C++ API surface.
 ## Current evidence
 
 The reproducible gate uses all 28 real BSI conformance images and observes every one of the
-784 image/component pairs. At the reviewed source state, all 784 scalar values and all 784
+784 image/component pairs. At the 0.2.0 source state, all 784 scalar values and all 784
 statuses matched live `OFIQSampleApp` exactly. At six-decimal CSV precision, 702 raw values
 were exact and all 784 met the named, component-specific raw policy. See
 [Conformance](conformance.md) for the artifact hashes and verdict policy, and
-[Architecture review and ATG execution](review.md) for the full C++ crosswalk and
-remediation graph.
+[Architecture review](review.md) for the full C++ crosswalk and implementation record.
 
 The [runtime performance review](performance.md) uses real BSI and CelebA inputs and
-confirms one worker as the measured default on the reviewed host; its aggregate evidence
+confirms one worker as the measured default on the benchmark host; its aggregate evidence
 contains no licensed images or per-image identities.
 
 A non-redistributed 1,197-image CelebA diagnostic is also aggregate-bound in the review.

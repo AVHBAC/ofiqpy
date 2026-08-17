@@ -27,7 +27,7 @@ an executable rationale for every value in `ofiqpy/raw_policy.py`. A raw value i
 and explicitly excluded only when either side reports `FailureToAssess`; status comparison
 still applies to that observation.
 
-## Reviewed result: 2026-08-14
+## Release result: 2026-08-16
 
 | Observation | Result |
 |---|---:|
@@ -45,14 +45,14 @@ review environment.
 
 ## Bound artifacts
 
-The reviewed run recorded these stable profile/input bindings:
+The release run recorded these stable profile/input bindings:
 
 | Artifact | SHA-256 |
 |---|---|
 | Canonical config | `e117286706d799a1e23130db01cfdff7ef36d157b22ecf68dd196052a8a8d0b3` |
 | Canonical 12-model manifest aggregate | `9a7b6b7943f4c17000bf32eed5be66ad5259f20c6166be4e83bf63db695d8831` |
 | 28-image BSI input aggregate | `f9dab8561ac543e44e93e12c254b0a7af6b6cdd12d3156f1174b8b984a6c4be5` |
-| Reviewed local `OFIQSampleApp` binary | `1c36ce0a1099e3df4c406a53a3cfd70c75a00cfb97299ebe1aa50cdec235e98c` |
+| Tested local `OFIQSampleApp` binary | `1c36ce0a1099e3df4c406a53a3cfd70c75a00cfb97299ebe1aa50cdec235e98c` |
 
 The generated report also records the source-tree hash, both git commits, OFIQ shared
 library hashes, ONNX Runtime library hash, and an optional wheel/sdist hash. Rebuilt C++
