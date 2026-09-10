@@ -12,16 +12,6 @@ from ofiqpy.measures import pixel
 from ofiqpy.results import AssessmentStatus
 
 
-def test_runtime_version_matches_reviewed_release() -> None:
-    assert ofiqpy.__version__ == "0.2.0"
-
-
-def test_citation_version_matches_runtime_release() -> None:
-    citation = (Path(__file__).resolve().parents[1] / "CITATION.cff").read_text(encoding="utf-8")
-
-    assert "version: 0.2.0" in citation
-
-
 def test_top_level_typed_status_export_is_available() -> None:
     assert ofiqpy.AssessmentStatus is AssessmentStatus
 

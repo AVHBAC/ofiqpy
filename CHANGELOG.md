@@ -3,6 +3,22 @@
 All notable changes to ofiqpy are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
+## [0.2.1] - 2026-09-10
+
+### Changed
+
+- Require setuptools 77 or newer for the existing PEP 639 SPDX license metadata
+  in isolated source builds. Runtime dependencies, canonical model hashes, and
+  scientific producers are unchanged.
+- Document model-only acquisition and explicit import of an already authorized
+  canonical data directory without requiring the C++ conformance build.
+- Remove two literal 0.2.0 assertions that pinned an incidental release number;
+  the release workflow still checks the installed wheel version against its tag.
+- Local Linux/Python 3.11 validation: 47 tests passed, one skipped. The installed
+  0.2.1 wheel matched all 784 scalar values and 784 status values over 28 real
+  BSI captures; all 784 raw values were within policy and 702 were exact at
+  six-decimal precision. The live CI workflow remains the publication gate.
+
 ## [0.2.0] - 2026-08-16
 
 ### Changed

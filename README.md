@@ -50,22 +50,74 @@ unhashed run used identical bytes. See [Conformance](docs/conformance.md).
 
 ## Install and configure
 
+Use Python 3.11 or 3.12 on Linux x86-64, including Linux inside Windows WSL2.
+The canonical runtime is CPU-only and uses the pinned NumPy, OpenCV, and
+ONNX Runtime dependencies. Do not install it into the OpenFIQA/QualSight
+application environment or replace its backend with a GPU build while claiming
+the canonical profile's conformance.
+
 ```bash
+python3.11 -m venv .venv-ofiqpy
+source .venv-ofiqpy/bin/activate
 python -m pip install ofiqpy
-
-git clone --branch v1.1.0 https://github.com/BSI-OFIQ/OFIQ-Project.git ../OFIQ-Project
-(
-  cd ../OFIQ-Project/scripts
-  sh build.sh
-)
-
-export OFIQPY_OFIQ_ROOT="$(cd ../OFIQ-Project && pwd)"
-export OFIQPY_OFIQ_DATA="$OFIQPY_OFIQ_ROOT/data"
 ```
 
-The OFIQ build downloads the separately licensed models and BSI test images. `ofiqpy`
-does not bundle or redistribute those files. Initialization stops with an integrity error
-if the downloaded configuration or any required model differs from the verified profile.
+Version 0.2.1 is a packaging update: the build-backend requirement and installation
+instructions changed; runtime dependencies, canonical model hashes and scientific
+producers did not. Publication is gated by the repository's real-data CI workflow.
+
+For an already authorized local profile, no native compilation or automatic
+download is needed:
+
+```bash
+export OFIQPY_OFIQ_DATA="$AUTHORIZED_OFIQ_DATA"
+python -m ofiqpy.config
+```
+
+The directory must contain the canonical `ofiq_config.jaxn` and exact
+`models/` tree. Configuration loading verifies all twelve required model
+artifacts before inference. It does not import images, copy the profile, or
+grant redistribution rights.
+
+To acquire the upstream profile explicitly, review the upstream model terms
+first. The model archive URL and extraction layout below are those used by
+[OFIQ v1.1.0's build](https://github.com/BSI-OFIQ/OFIQ-Project/blob/bb5dc91d00477e02ce53d2530d28e35021484393/CMakeLists.txt).
+This model-only route uses `git`, `curl`, and `unzip`, not a C++ toolchain:
+
+```bash
+git clone --branch v1.1.0 https://github.com/BSI-OFIQ/OFIQ-Project.git ../OFIQ-Project
+curl --fail --location --output OFIQ-MODELS.zip \
+  https://standards.iso.org/iso-iec/29794/-5/ed-1/en/OFIQ-MODELS.zip
+unzip -n OFIQ-MODELS.zip -d ../OFIQ-Project/data
+export OFIQPY_OFIQ_ROOT="$(cd ../OFIQ-Project && pwd)"
+export OFIQPY_OFIQ_DATA="$OFIQPY_OFIQ_ROOT/data"
+python -m ofiqpy.config
+```
+
+The verifier rejects any changed or missing canonical bytes, including a
+future upstream archive that no longer matches this package. `-n` avoids
+overwriting an existing model tree; use a separate destination rather than
+altering a previously bound profile. `ofiqpy` does not bundle or redistribute
+the archive, models, or BSI images.
+
+The examples below use BSI conformance captures, obtained separately under
+their terms. To run those examples without building native OFIQ:
+
+```bash
+curl --fail --location --output OFIQ-IMAGES.zip \
+  https://standards.iso.org/iso-iec/29794/-5/ed-1/en/OFIQ-IMAGES.zip
+unzip -n OFIQ-IMAGES.zip -d "$OFIQPY_OFIQ_DATA/tests"
+```
+
+Only the strict live-C++ conformance gate needs the native reference build:
+
+```bash
+(cd "$OFIQPY_OFIQ_ROOT/scripts" && sh build.sh)
+```
+
+Native build prerequisites and licenses remain governed by upstream OFIQ.
+Neither model-only configuration verification nor package installation is a
+new conformance result.
 
 ## Python API
 
