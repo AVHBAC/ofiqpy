@@ -73,5 +73,5 @@ Only the strict live-C++ comparison needs the native reference build:
 `(cd "$OFIQPY_OFIQ_ROOT/scripts" && sh build.sh)`. Follow
 [Conformance](conformance.md) for that separate gate and upstream build
 prerequisites. No pandas dependency is required. Model configuration checks
-are not new conformance evidence. The prepared 0.2.1 source changes the
-setuptools build floor, not this runtime profile; publication is not claimed.
+are not new conformance evidence. Version 0.2.2 changes build metadata and contract
+tests, not this runtime profile. Release artifacts require the complete real-data CI gate.

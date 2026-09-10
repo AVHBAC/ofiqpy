@@ -62,9 +62,9 @@ source .venv-ofiqpy/bin/activate
 python -m pip install ofiqpy
 ```
 
-Version 0.2.1 is a packaging update: the build-backend requirement and installation
-instructions changed; runtime dependencies, canonical model hashes and scientific
-producers did not. Publication is gated by the repository's real-data CI workflow.
+Version 0.2.2 updates packaging and removes host-specific raw-diagnostic assertions.
+Runtime dependencies, canonical model hashes, scientific producers, and the named raw
+tolerance policy are unchanged. Publication remains gated by the complete real-data CI workflow.
 
 For an already authorized local profile, no native compilation or automatic
 download is needed:

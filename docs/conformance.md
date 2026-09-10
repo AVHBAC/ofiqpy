@@ -27,6 +27,13 @@ an executable rationale for every value in `ofiqpy/raw_policy.py`. A raw value i
 and explicitly excluded only when either side reports `FailureToAssess`; status comparison
 still applies to that observation.
 
+Cross-host tests use this same policy. Exact or near-exact raw agreement on one host
+does not create a tighter contract for a component whose named tolerance is nonzero.
+On 2026-09-10, the release gate retained the frozen tolerances and removed conflicting
+single-host diagnostic assertions rather than widening the policy or restricting CI
+to the original machine. The complete 28-image gate still checks every scalar, status,
+and defined raw value.
+
 ## Release result: 2026-08-16
 
 | Observation | Result |

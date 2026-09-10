@@ -4,7 +4,7 @@ title: "ofiqpy: a Python implementation of the canonical OFIQ v1.1.0 profile"
 authors:
   - family-names: Storey
     given-names: Aaron
-version: 0.2.1
+version: 0.2.2
 license: MIT
 repository-code: "https://github.com/AVHBAC/ofiqpy"
 url: "https://avhbac.github.io/ofiqpy/"

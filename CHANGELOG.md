@@ -3,6 +3,19 @@
 All notable changes to ofiqpy are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
+## [0.2.2] - 2026-09-10
+
+### Fixed
+
+- Remove duplicate expression, pose, and compression tests that treated host-specific
+  exact or near-exact raw diagnostics as additional conformance requirements. The
+  complete 28-image gate still requires all 784 scalar/status observations to match
+  and all defined raw values to satisfy the unchanged named component policy.
+- Remove a source-text inspection test; it did not exercise finite-value rejection.
+- The 0.2.1 tag remains unchanged. Its PyPI job was skipped after the GitHub Python
+  3.11 gate reported 45 passed, two failed, and one skipped. Both failures were
+  diagnostic ExpressionNeutrality assertions; the complete component-policy gate passed.
+
 ## [0.2.1] - 2026-09-10
 
 ### Changed
